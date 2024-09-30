@@ -4,34 +4,43 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Connexion</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
-    <div class="container">
-        <h1>Connexion</h1>
+    <div class="container mt-5">
+        <h1 class="text-center">Connexion</h1>
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             <div class="flash-messages">
                 {% for category, message in messages %}
-                    <div class="flash-message {{ category }}">{{ message }}</div>
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
                 {% endfor %}
             </div>
         {% endif %}
         {% endwith %}
-        <form action="{{ url_for('login') }}" method="post">
+        <form action="{{ url_for('login') }}" method="post" class="mt-4">
             <div class="form-group">
                 <label for="email">Adresse e-mail:</label>
-                <input type="email" name="email" id="email" required>
+                <input type="email" name="email" id="email" class="form-control" required>
             </div>
             <div class="form-group">
                 <label for="password">Mot de passe:</label>
-                <input type="password" name="password" id="password" required>
+                <input type="password" name="password" id="password" class="form-control" required>
             </div>
-            <div class="form-group">
-                <button type="submit">Se connecter</button>
+            <div class="form-group text-center">
+                <button type="submit" class="btn btn-primary">Se connecter</button>
             </div>
         </form>
-        <p>Pas encore inscrit? <a href="{{ url_for('register') }}">Inscrivez-vous ici</a>.</p>
+        <p class="text-center">Pas encore inscrit? <a href="{{ url_for('register') }}">Inscrivez-vous ici</a>.</p>
     </div>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>

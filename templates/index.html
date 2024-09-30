@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Site de la Classe de MPSI</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <script>
         function refreshPage() {
@@ -14,24 +15,34 @@
     </script>
 </head>
 <body>
-    <header>
-        <h1>Site de la Classe de MPSI</h1>
-        {% if current_user.is_authenticated %}
-            <a href="{{ url_for('logout') }}">Se déconnecter</a>
-            {% if current_user.is_admin %}
-                <a href="{{ url_for('admin') }}">Admin</a>
-            {% endif %}
-        {% else %}
-            <a href="{{ url_for('login') }}">Se connecter</a> | 
-            <a href="{{ url_for('register') }}">S'inscrire</a>
-        {% endif %}
+    <header class="bg-primary text-white text-center py-3">
+        <div class="container">
+            <h1 class="site-title">Site de la Classe de MPSI</h1>
+            <div>
+                {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('logout') }}" class="btn btn-light">Se déconnecter</a>
+                    {% if current_user.is_admin %}
+                        <a href="{{ url_for('admin') }}" class="btn btn-light">Admin</a>
+                    {% endif %}
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="btn btn-light">Se connecter</a>
+                    <a href="{{ url_for('register') }}" class="btn btn-light">S'inscrire</a>
+                {% endif %}
+            </div>
+        </div>
     </header>
-    <div class="content">
+    <div class="container mt-4">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="flash-message {{ category }}">
-                        {{ message }}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show d-flex align-items-center" role="alert">
+                        <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="Warning:"><use xlink:href="#exclamation-triangle-fill"/></svg>
+                        <div>
+                            {{ message }}
+                        </div>
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
                     </div>
                 {% endfor %}
                 <script>
@@ -40,52 +51,84 @@
             {% endif %}
         {% endwith %}
         {% if current_user.is_authenticated %}
-        <div class="card">
-            <h2>Déposer un énoncé de khôlle</h2>
-            <div id="error-message" class="flash-message error" style="display: none;"></div>
-            <form action="/upload" method="post" enctype="multipart/form-data">
-                <div class="form-group">
-                    <label for="subject">Matière:</label>
-                    <select id="subject" name="subject" required>
-                        <option value="" disabled selected>Choisissez votre matière</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="chapter">Chapitre:</label>
-                    <select id="chapter" name="chapter" required></select>
-                </div>
-                <div class="form-group">
-                    <label for="kholleur">Khôlleur:</label>
-                    <select id="kholleur" name="kholleur" required>
-                        <option value="" disabled selected>Choisissez votre khôlleur</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="difficulty">Difficulté:</label>
-                    <div class="star-rating">
-                        <input type="radio" id="star5" name="difficulty" value="5" required><label for="star5" title="5 étoiles">★</label>
-                        <input type="radio" id="star4" name="difficulty" value="4"><label for="star4" title="4 étoiles">★</label>
-                        <input type="radio" id="star3" name="difficulty" value="3"><label for="star3" title="3 étoiles">★</label>
-                        <input type="radio" id="star2" name="difficulty" value="2"><label for="star2" title="2 étoiles">★</label>
-                        <input type="radio" id="star1" name="difficulty" value="1"><label for="star1" title="1 étoile">★</label>
+        <div class="card mb-4">
+            <div class="card-header">
+                <h2>Déposer un énoncé de khôlle</h2>
+            </div>
+                <form action="/upload" method="post" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="subject">Matière:</label>
+                        <select id="subject" name="subject" class="form-control" required>
+                            <option value="" disabled selected>Choisissez votre matière</option>
+                        </select>
                     </div>
-                </div>
-                <div class="form-group">
-                    <label for="file">Fichier:</label>
-                    <input type="file" name="file" id="file" accept="image/*" required>
-                </div>
-                <div class="form-group">
-                    <button type="submit">Déposer</button>
-                </div>
-            </form>
+                    <div class="form-group">
+                        <label for="chapter">Chapitre:</label>
+                        <select id="chapter" name="chapter" class="form-control" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="kholleur">Khôlleur:</label>
+                        <select id="kholleur" name="kholleur" class="form-control" required>
+                            <option value="" disabled selected>Choisissez votre khôlleur</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="difficulty">Difficulté:</label>
+                        <div class="star-rating">
+                            <input type="radio" id="star5" name="difficulty" value="5" required><label for="star5" title="5 étoiles">★</label>
+                            <input type="radio" id="star4" name="difficulty" value="4"><label for="star4" title="4 étoiles">★</label>
+                            <input type="radio" id="star3" name="difficulty" value="3"><label for="star3" title="3 étoiles">★</label>
+                            <input type="radio" id="star2" name="difficulty" value="2"><label for="star2" title="2 étoiles">★</label>
+                            <input type="radio" id="star1" name="difficulty" value="1"><label for="star1" title="1 étoile">★</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="file">Fichier:</label>
+                        <input type="file" name="file" id="file" class="form-control-file" accept="image/*" required>
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary">Déposer</button>
+                    </div>
+                </form>
+            </div>
         </div>
         {% else %}
-        <div class="alert">
-            <p>Veuillez vous <a href="{{ url_for('login') }}">connecter</a> ou vous <a href="{{ url_for('register') }}">inscrire</a> pour déposer un énoncé de khôlle.</p>
+        <div class="alert alert-warning d-flex align-items-center">
+            <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="Warning:"><use xlink:href="#exclamation-triangle-fill"/></svg>
+            <div>
+                Veuillez vous <a href="{{ url_for('login') }}" class="alert-link">connecter</a> ou vous <a href="{{ url_for('register') }}" class="alert-link">inscrire</a> pour déposer un énoncé de khôlle.
+            </div>
         </div>
         {% endif %}
     </div>
  
+    <div class="container mt-4">
+        <h2>Les Énoncés de Khôlle Publiés</h2>
+        <div class="filters mb-3">
+            <div class="form-row">
+                <div class="col">
+                    <label for="filter-subject">Filtrer par matière:</label>
+                    <select id="filter-subject" class="form-control">
+                        <option value="">Toutes les matières</option>
+                    </select>
+                </div>
+                <div class="col">
+                    <label for="filter-chapter">Filtrer par chapitre:</label>
+                    <select id="filter-chapter" class="form-control">
+                        <option value="">Tous les chapitres</option>
+                    </select>
+                </div>
+                <div class="col-auto align-self-end">
+                    <button id="apply-filters" class="btn btn-primary">Appliquer les filtres</button>
+                </div>
+            </div>
+        </div>
+        <div id="submissions-list" class="row"></div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const errorMessage = document.getElementById('error-message');
@@ -152,110 +195,93 @@
                     errorMessage.textContent = 'There was a problem with the fetch operation: ' + error.message;
                     errorMessage.style.display = 'block';
                 });
-        });
-    </script>
 
-<!-- Add this at the bottom of the body tag -->
-<div class="submissions">
-    <h2>Les Énoncés de Khôlle Publiés</h2>
-    <div class="filters">
-        <label for="filter-subject">Filtrer par matière:</label>
-        <select id="filter-subject">
-            <option value="">Toutes les matières</option>
-        </select>
-        <label for="filter-chapter">Filtrer par chapitre:</label>
-        <select id="filter-chapter">
-            <option value="">Tous les chapitres</option>
-        </select>
-        <button id="apply-filters">Appliquer les filtres</button>
-    </div>
-    <div id="submissions-list"></div>
-</div>
+            const submissionsList = document.getElementById('submissions-list');
+            const filterSubject = document.getElementById('filter-subject');
+            const filterChapter = document.getElementById('filter-chapter');
+            const applyFiltersButton = document.getElementById('apply-filters');
 
-<script>
-    function generateStars(difficulty) {
-        let stars = '';
-        for (let i = 0; i < 5; i++) {
-            stars += i < difficulty ? '★' : '☆';
-        }
-        return stars;
-    }
-    
-    document.addEventListener('DOMContentLoaded', function() {
-        const submissionsList = document.getElementById('submissions-list');
-        const filterSubject = document.getElementById('filter-subject');
-        const filterChapter = document.getElementById('filter-chapter');
-        const applyFiltersButton = document.getElementById('apply-filters');
-
-        function fetchSubmissions(subject = '', chapter = '') {
-            let url = '/get_submissions';
-            if (subject || chapter) {
-                url += `?subject=${subject}&chapter=${chapter}`;
+            function generateStars(difficulty) {
+                let stars = '';
+                for (let i = 0; i < 5; i++) {
+                    stars += i < difficulty ? '★' : '☆';
+                }
+                return stars;
             }
 
-            fetch(url)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    submissionsList.innerHTML = '';
-                    data.forEach(submission => {
-                        const submissionDiv = document.createElement('div');
-                        submissionDiv.classList.add('submission');
-                        submissionDiv.innerHTML = `
-                            <p><strong>Prénom:</strong> ${submission.prenom}</p>
-                            <p><strong>Matière:</strong> ${submission.subject}</p>
-                            <p><strong>Chapitre:</strong> ${submission.chapter}</p>
-                            <p><strong>Khôlleur:</strong> ${submission.kholleur}</p>
-                            <p><strong>Date:</strong> ${submission.date}</p>
-                            <p><strong>Difficulté:</strong> ${generateStars(submission.difficulte)}</p>
-                            <img src="${submission.image_url}" alt="Image de l'énoncé">
-                        `;
-                        submissionsList.appendChild(submissionDiv);
-                    });
-                })
-                .catch(error => {
-                    submissionsList.innerHTML = 'There was a problem with the fetch operation: ' + error.message;
-                });
-        }
-
-        applyFiltersButton.addEventListener('click', function() {
-            const subject = filterSubject.value;
-            const chapter = filterChapter.value;
-            fetchSubmissions(subject, chapter);
-        });
-
-        // Populate filter options
-        fetch('/get_structure')
-            .then(response => response.json())
-            .then(data => {
-                for (const subject in data) {
-                    const option = document.createElement('option');
-                    option.value = subject;
-                    option.textContent = subject;
-                    filterSubject.appendChild(option);
+            function fetchSubmissions(subject = '', chapter = '') {
+                let url = '/get_submissions';
+                if (subject || chapter) {
+                    url += `?subject=${subject}&chapter=${chapter}`;
                 }
 
-                filterSubject.addEventListener('change', function() {
-                    filterChapter.innerHTML = '<option value="">Tous les chapitres</option>';
-                    const chapters = data[this.value];
-                    if (chapters) {
-                        chapters.forEach(chapter => {
-                            const option = document.createElement('option');
-                            option.value = chapter;
-                            option.textContent = chapter;
-                            filterChapter.appendChild(option);
+                fetch(url)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        submissionsList.innerHTML = '';
+                        data.forEach(submission => {
+                            const submissionDiv = document.createElement('div');
+                            submissionDiv.classList.add('col-md-4', 'mb-4');
+                            submissionDiv.innerHTML = `
+                                <div class="card">
+                                    <div class="card-body">
+                                        <p><strong>Prénom:</strong> ${submission.prenom}</p>
+                                        <p><strong>Matière:</strong> ${submission.subject}</p>
+                                        <p><strong>Chapitre:</strong> ${submission.chapter}</p>
+                                        <p><strong>Khôlleur:</strong> ${submission.kholleur}</p>
+                                        <p><strong>Date:</strong> ${submission.date}</p>
+                                        <p><strong>Difficulté:</strong> ${generateStars(submission.difficulte)}</p>
+                                        <img src="${submission.image_url}" alt="Image de l'énoncé" class="img-fluid">
+                                    </div>
+                                </div>
+                            `;
+                            submissionsList.appendChild(submissionDiv);
                         });
-                    }
-                });
+                    })
+                    .catch(error => {
+                        submissionsList.innerHTML = 'There was a problem with the fetch operation: ' + error.message;
+                    });
+            }
+
+            applyFiltersButton.addEventListener('click', function() {
+                const subject = filterSubject.value;
+                const chapter = filterChapter.value;
+                fetchSubmissions(subject, chapter);
             });
 
-        // Initial fetch of submissions
-        fetchSubmissions();
-    });
-</script>
+            // Populate filter options
+            fetch('/get_structure')
+                .then(response => response.json())
+                .then(data => {
+                    for (const subject in data) {
+                        const option = document.createElement('option');
+                        option.value = subject;
+                        option.textContent = subject;
+                        filterSubject.appendChild(option);
+                    }
+
+                    filterSubject.addEventListener('change', function() {
+                        filterChapter.innerHTML = '<option value="">Tous les chapitres</option>';
+                        const chapters = data[this.value];
+                        if (chapters) {
+                            chapters.forEach(chapter => {
+                                const option = document.createElement('option');
+                                option.value = chapter;
+                                option.textContent = chapter;
+                                filterChapter.appendChild(option);
+                            });
+                        }
+                    });
+                });
+
+            // Initial fetch of submissions
+            fetchSubmissions();
+        });
+    </script>
 </body>
 </html>
