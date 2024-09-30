@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Site de la Classe de MPSI</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <script>
         function refreshPage() {
@@ -52,27 +53,27 @@
         {% endwith %}
         {% if current_user.is_authenticated %}
         <div class="card mb-4">
-            <div class="card-header">
+            <div class="card-header mb-3">
                 <h2>Déposer un énoncé de khôlle</h2>
             </div>
                 <form action="/upload" method="post" enctype="multipart/form-data">
-                    <div class="form-group">
+                    <div class="form-group px-3">
                         <label for="subject">Matière:</label>
                         <select id="subject" name="subject" class="form-control" required>
                             <option value="" disabled selected>Choisissez votre matière</option>
                         </select>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group px-3">
                         <label for="chapter">Chapitre:</label>
                         <select id="chapter" name="chapter" class="form-control" required></select>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group px-3">
                         <label for="kholleur">Khôlleur:</label>
                         <select id="kholleur" name="kholleur" class="form-control" required>
                             <option value="" disabled selected>Choisissez votre khôlleur</option>
                         </select>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group px-3">
                         <label for="difficulty">Difficulté:</label>
                         <div class="star-rating">
                             <input type="radio" id="star5" name="difficulty" value="5" required><label for="star5" title="5 étoiles">★</label>
@@ -82,11 +83,11 @@
                             <input type="radio" id="star1" name="difficulty" value="1"><label for="star1" title="1 étoile">★</label>
                         </div>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group px-3">
                         <label for="file">Fichier:</label>
                         <input type="file" name="file" id="file" class="form-control-file" accept="image/*" required>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group px-3">
                         <button type="submit" class="btn btn-primary">Déposer</button>
                     </div>
                 </form>
@@ -228,17 +229,17 @@
                             const submissionDiv = document.createElement('div');
                             submissionDiv.classList.add('col-md-4', 'mb-4');
                             submissionDiv.innerHTML = `
-                                <div class="card">
-                                    <div class="card-body">
-                                        <p><strong>Prénom:</strong> ${submission.prenom}</p>
-                                        <p><strong>Matière:</strong> ${submission.subject}</p>
-                                        <p><strong>Chapitre:</strong> ${submission.chapter}</p>
-                                        <p><strong>Khôlleur:</strong> ${submission.kholleur}</p>
-                                        <p><strong>Date:</strong> ${submission.date}</p>
-                                        <p><strong>Difficulté:</strong> ${generateStars(submission.difficulte)}</p>
-                                        <img src="${submission.image_url}" alt="Image de l'énoncé" class="img-fluid">
+                                    <div class="card h-100 animate__animated animate__fadeIn">
+                                        <img src="${submission.image_url}" alt="Image de l'énoncé"  class="card-img-top" style="max-height: 200px; max-width: 100%;">
+                                        <div class="card-body">
+                                            <p class="fw-bold">Prénom: <span class="fw-normal">${submission.prenom}</span></p>
+                                            <p class="fw-bold">Matière: <span class="fw-normal">${submission.subject}</span></p>
+                                            <p class="fw-bold">Chapitre: <span class="fw-normal">${submission.chapter}</span></p>
+                                            <p class="fw-bold">Khôlleur: <span class="fw-normal">${submission.kholleur}</span></p>
+                                            <p class="fw-bold">Date: <span class="fw-normal">${submission.date}</span></p>
+                                            <p class="fw-bold">Difficulté: <span class="fw-normal">${generateStars(submission.difficulte)}</span></p>
+                                        </div>
                                     </div>
-                                </div>
                             `;
                             submissionsList.appendChild(submissionDiv);
                         });
