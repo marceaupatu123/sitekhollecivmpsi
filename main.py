@@ -228,7 +228,39 @@ def index():
 @app.route('/admin')
 @login_required
 def admin():
-    return render_template('admin.html')
+    if not current_user.is_admin:
+        flash('Accès refusé : Vous n\'êtes pas administrateur.', 'error')
+        return redirect(url_for('index'))
+    users = User.query.all()
+    return render_template('admin.html', users=users)
+
+@app.route('/admin/edit_user/<int:user_id>', methods=['GET', 'POST'])
+@login_required
+def edit_user(user_id):
+    if not current_user.is_admin:
+        flash('Accès refusé : Vous n\'êtes pas administrateur.', 'error')
+        return redirect(url_for('index'))
+    user = User.query.get_or_404(user_id)
+    if request.method == 'POST':
+        user.first_name = request.form['first_name']
+        user.last_name = request.form['last_name']
+        user.email = request.form['email']
+        db.session.commit()
+        flash('Utilisateur mis à jour avec succès!', 'success')
+        return redirect(url_for('admin'))
+    return render_template('edit_user.html', user=user)
+
+@app.route('/admin/delete_user/<int:user_id>', methods=['POST'])
+@login_required
+def delete_user(user_id):
+    if not current_user.is_admin:
+        flash('Accès refusé : Vous n\'êtes pas administrateur.', 'error')
+        return redirect(url_for('index'))
+    user = User.query.get_or_404(user_id)
+    db.session.delete(user)
+    db.session.commit()
+    flash('Utilisateur supprimé avec succès!', 'success')
+    return redirect(url_for('admin'))
 
 if __name__ == '__main__':
     with app.app_context():

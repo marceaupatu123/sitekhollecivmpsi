@@ -131,6 +131,7 @@ p a:hover {
 .star-rating {
     direction: rtl;
     display: inline-flex;
+    margin-top: 10px;
 }
 
 .star-rating input[type="radio"] {
@@ -151,8 +152,6 @@ p a:hover {
 .star-rating label:hover ~ label {
     color: #f5b301;
 }
-
-/* Add these styles to your styles.css file */
 
 .filters {
     display: flex;
@@ -186,8 +185,6 @@ p a:hover {
     background-color: #4cae4c;
 }
 
-/* Add these styles to center the text in the submissions section */
-
 .submissions {
     text-align: center;
 }
@@ -209,28 +206,21 @@ p a:hover {
     margin-top: 10px;
 }
 
-.star-rating {
-    direction: rtl;
-    display: inline-flex;
-    margin-top: 10px;
+.flash-message {
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 5px;
+    text-align: center;
 }
 
-.star-rating input[type="radio"] {
-    display: none;
+.flash-message.success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
 }
 
-.star-rating label {
-    font-size: 2em;
-    color: #ddd;
-    cursor: pointer;
+.flash-message.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
 }
-
-.star-rating input[type="radio"]:checked ~ label {
-    color: #f5b301;
-}
-
-.star-rating label:hover,
-.star-rating label:hover ~ label {
-    color: #f5b301;
-}
-

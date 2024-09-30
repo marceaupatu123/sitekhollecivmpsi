@@ -22,17 +22,18 @@
                 <a href="{{ url_for('admin') }}">Admin</a>
             {% endif %}
         {% else %}
-        
             <a href="{{ url_for('login') }}">Se connecter</a> | 
             <a href="{{ url_for('register') }}">S'inscrire</a>
         {% endif %}
     </header>
     <div class="content">
-        {% with messages = get_flashed_messages() %}
+        {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-                <div class="flash-message">
-                    {{ messages[0] }}
-                </div>
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
                 <script>
                     refreshPage();
                 </script>
@@ -41,7 +42,7 @@
         {% if current_user.is_authenticated %}
         <div class="card">
             <h2>Déposer un énoncé de khôlle</h2>
-            <div id="error-message" style="color: red;"></div>
+            <div id="error-message" class="flash-message error" style="display: none;"></div>
             <form action="/upload" method="post" enctype="multipart/form-data">
                 <div class="form-group">
                     <label for="subject">Matière:</label>
@@ -123,6 +124,7 @@
                 })
                 .catch(error => {
                     errorMessage.textContent = 'There was a problem with the fetch operation: ' + error.message;
+                    errorMessage.style.display = 'block';
                 });
 
             fetch('/get_kholleurs')
@@ -148,6 +150,7 @@
                 })
                 .catch(error => {
                     errorMessage.textContent = 'There was a problem with the fetch operation: ' + error.message;
+                    errorMessage.style.display = 'block';
                 });
         });
     </script>
@@ -171,13 +174,13 @@
 
 <script>
     function generateStars(difficulty) {
-            let stars = '';
-            for (let i = 0; i < 5; i++) {
-                stars += i < difficulty ? '★' : '☆';
-            }
-            return stars;
+        let stars = '';
+        for (let i = 0; i < 5; i++) {
+            stars += i < difficulty ? '★' : '☆';
         }
-        
+        return stars;
+    }
+    
     document.addEventListener('DOMContentLoaded', function() {
         const submissionsList = document.getElementById('submissions-list');
         const filterSubject = document.getElementById('filter-subject');
