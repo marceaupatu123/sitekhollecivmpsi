@@ -18,7 +18,11 @@
         <h1>Site de la Classe de MPSI</h1>
         {% if current_user.is_authenticated %}
             <a href="{{ url_for('logout') }}">Se déconnecter</a>
+            {% if current_user.is_admin %}
+                <a href="{{ url_for('admin') }}">Admin</a>
+            {% endif %}
         {% else %}
+        
             <a href="{{ url_for('login') }}">Se connecter</a> | 
             <a href="{{ url_for('register') }}">S'inscrire</a>
         {% endif %}
@@ -166,6 +170,14 @@
 </div>
 
 <script>
+    function generateStars(difficulty) {
+            let stars = '';
+            for (let i = 0; i < 5; i++) {
+                stars += i < difficulty ? '★' : '☆';
+            }
+            return stars;
+        }
+        
     document.addEventListener('DOMContentLoaded', function() {
         const submissionsList = document.getElementById('submissions-list');
         const filterSubject = document.getElementById('filter-subject');
@@ -196,12 +208,7 @@
                             <p><strong>Chapitre:</strong> ${submission.chapter}</p>
                             <p><strong>Khôlleur:</strong> ${submission.kholleur}</p>
                             <p><strong>Date:</strong> ${submission.date}</p>
-                            <div class="star-rating">
-                                ${[...Array(5)].map((_, i) => `
-                                    <input type="radio" id="star${i+1}-${submission.id}" name="rating-${submission.id}" value="${i+1}" ${i+1 == submission.difficulte ? 'checked' : ''} disabled>
-                                    <label for="star${i+1}-${submission.id}">&#9733;</label>
-                                `).join('')}
-                            </div>
+                            <p><strong>Difficulté:</strong> ${generateStars(submission.difficulte)}</p>
                             <img src="${submission.image_url}" alt="Image de l'énoncé">
                         `;
                         submissionsList.appendChild(submissionDiv);

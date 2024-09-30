@@ -22,12 +22,33 @@ db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
+# Commande de création d'admin
+
+@app.cli.command('create_admin')
+def create_admin():
+    from getpass import getpass
+    email = input('Email: ')
+    first_name = input('First Name: ')
+    last_name = input('Last Name: ')
+    password = getpass('Password: ')
+    confirm_password = getpass('Confirm Password: ')
+
+    if password != confirm_password:
+        print('Passwords do not match!')
+        return
+
+    hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
+    new_admin = User(email=email, first_name=first_name, last_name=last_name, password=hashed_password, is_admin=True)
+    db.session.add(new_admin)
+    db.session.commit()
+    print('Admin user created successfully!')
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(150), unique=True, nullable=False)
     first_name = db.Column(db.String(150), nullable=False)
     last_name = db.Column(db.String(150), nullable=False)
     password = db.Column(db.String(150), nullable=False)
+    is_admin = db.Column(db.Boolean, default=False)  # Nouveau champ
 
 class Submission(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -203,6 +224,11 @@ def uploaded_file(filename):
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/admin')
+@login_required
+def admin():
+    return render_template('admin.html')
 
 if __name__ == '__main__':
     with app.app_context():
