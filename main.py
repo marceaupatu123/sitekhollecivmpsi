@@ -111,7 +111,7 @@ def login():
 @login_required
 def logout():
     logout_user()
-    flash('Vous avez été déconnecté.', 'info')
+    flash('Vous avez été déconnecté.', 'warning')
     return redirect(url_for('index'))
 
 @app.route('/get_structure')

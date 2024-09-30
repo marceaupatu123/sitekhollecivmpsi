@@ -96,3 +96,9 @@ header a:hover {
     color: #856404;
     border-color: #ffeeba;
 }
+
+.alert-message {
+    background-color: #f8f9fa;
+    color: #383e41;
+    border-color: #d6d8db;
+}
