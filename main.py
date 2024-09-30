@@ -99,19 +99,19 @@ def login():
         if user:
             if check_password_hash(user.password, password):
                 login_user(user)
-                flash('Logged in successfully!', 'success')
+                flash('Connecté avec succès!', 'success')
                 return redirect(url_for('index'))
             else:
-                flash('Invalid password', 'error')
+                flash('Mot de passe invalide', 'error')
         else:
-            flash('Invalid email', 'error')
+            flash('Email invalide', 'error')
     return render_template('login.html')
 
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
-    flash('You have been logged out.', 'success')
+    flash('Vous avez été déconnecté.', 'info')
     return redirect(url_for('index'))
 
 @app.route('/get_structure')
@@ -185,7 +185,7 @@ def upload_file():
         db.session.add(new_submission)
         db.session.commit()
         
-        flash('File successfully uploaded')
+        flash('Fichier envoyé avec succès!', 'success')
         return redirect(url_for('index'))
     flash('File type not allowed')
     return redirect(request.url)
