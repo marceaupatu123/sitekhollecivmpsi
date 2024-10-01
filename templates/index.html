@@ -230,17 +230,18 @@
                             const submissionDiv = document.createElement('div');
                             submissionDiv.classList.add('col-md-4', 'mb-4');
                             submissionDiv.innerHTML = `
-                                    <div class="card kholle-card h-100 animate__animated animate__fadeIn">
-                                        <img src="${submission.image_url}" alt="Image de l'énoncé"  class="card-img-top" style="max-height: 200px; max-width: 100%;">
+                                    <a href="#" class="card kholle-card h-100 animate__animated animate__fadeIn text-decoration-none text-dark" style="border-radius: 20px; overflow: hidden">
+                                        <img src="${submission.image_url}" alt="Image de l'énoncé" class="card-img-top" style="max-height: 200px; max-width: 100%;">
                                         <div class="card-body">
-                                            <p class="fw-bold">Prénom: <span class="fw-normal">${submission.prenom}</span></p>
-                                            <p class="fw-bold">Matière: <span class="fw-normal">${submission.subject}</span></p>
-                                            <p class="fw-bold">Chapitre: <span class="fw-normal">${submission.chapter}</span></p>
-                                            <p class="fw-bold">Khôlleur: <span class="fw-normal">${submission.kholleur}</span></p>
-                                            <p class="fw-bold">Date: <span class="fw-normal">${submission.date}</span></p>
-                                            <p class="fw-bold">Difficulté: <span class="fw-normal">${generateStars(submission.difficulte)}</span></p>
+                                            <span class="badge badge-pill badge-secondary mb-3">Sans Solutions</span>
+                                            <p><strong>Prénom:</strong> <span>${submission.prenom}</span></p>
+                                            <p><strong>Matière:</strong> <span>${submission.subject}</span></p>
+                                            <p><strong>Chapitre:</strong> <span>${submission.chapter}</span></p>
+                                            <p><strong>Khôlleur:</strong> <span>${submission.kholleur}</span></p>
+                                            <p><strong>Date:</strong> <span>${submission.date}</span></p>
+                                            <p><strong>Difficulté:</strong> <span>${generateStars(submission.difficulte)}</span></p>
                                         </div>
-                                    </div>
+                                    </a>
                             `;
                             submissionsList.appendChild(submissionDiv);
                         });
