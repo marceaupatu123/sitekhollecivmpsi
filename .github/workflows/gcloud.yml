@@ -14,6 +14,15 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
+    - name: Cache Google Cloud SDK
+      id: cache-gcloud-sdk
+      uses: actions/cache@v2
+      with:
+        path: /opt/hostedtoolcache/gcloud
+        key: ${{ runner.os }}-gcloud-${{ hashFiles('**/setup-gcloud.sh') }}
+        restore-keys: |
+          ${{ runner.os }}-gcloud-
+
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v0.2.0
       with:
