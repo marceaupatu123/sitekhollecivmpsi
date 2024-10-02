@@ -8,7 +8,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: GCP_SA_KEY
+    environment: production  # Utilise l'environnement nommé 'production'
 
     steps:
     - name: Checkout repository
@@ -19,16 +19,21 @@ jobs:
       uses: actions/cache@v2
       with:
         path: /opt/hostedtoolcache/gcloud
-        key: ${{ runner.os }}-gcloud-${{ hashFiles('**/setup-gcloud.sh') }}
+        key: ${{ runner.os }}-gcloud
         restore-keys: |
           ${{ runner.os }}-gcloud-
 
     - name: Set up Cloud SDK
-      uses: google-github-actions/setup-gcloud@v0.2.0
-      with:
-        version: 'latest'
-        project_id: sacred-ember-377216  # Remplacez par votre ID de projet Google Cloud
-        service_account_key: ${{ secrets.GCP_SA_KEY }}  # Ajoutez votre clé de compte de service dans les secrets GitHub
+      if: steps.cache-gcloud-sdk.outputs.cache-hit != 'true'
+      run: |
+        curl -sSL https://sdk.cloud.google.com | bash
+        echo "source /opt/hostedtoolcache/gcloud/path.bash.inc" >> $GITHUB_ENV
+
+    - name: Initialize Cloud SDK
+      run: |
+        gcloud --quiet components update
+        gcloud --quiet config set project sacred-ember-377216
+        gcloud --quiet auth activate-service-account 287953057890-compute@developer.gserviceaccount.com --key-file ${{ secrets.GCP_SA_KEY }}
 
     - name: Deploy to App Engine
       run: |
