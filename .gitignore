@@ -126,5 +126,4 @@ dmypy.json
 # VS Code
 .vscode/
 
-.Fichiers/Maths/
-.Fichiers/Physique/
+.Fichiers/*

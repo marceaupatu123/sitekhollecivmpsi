@@ -96,8 +96,8 @@ def test_upload_file(client):
 
     data = {
         'subject': 'Maths',
-        'chapter': 'Algebra',
-        'difficulty': 'Easy',
+        'chapter': '1 Complément de calcul algébrique et trigonométrique',
+        'difficulty': '1',
         'kholleur': 'M. Dupont'
     }
     data['file'] = (open('test_image.jpeg', 'rb'), 'test_image.jpeg')
@@ -121,20 +121,20 @@ def test_get_submissions(client):
         submission = Submission(
             user_id=user.id,
             subject='Maths',
-            chapter='Algebra',
-            difficulty='Easy',
+            chapter='1 Complément de calcul algébrique et trigonométrique',
+            difficulty='1',
             image_url='path/to/image.png',
             kholleur='M. Dupont'
         )
         db.session.add(submission)
         db.session.commit()
 
-    response = client.get('/get_submissions?subject=Maths&chapter=Algebra')
+    response = client.get('/get_submissions?subject=Maths&chapter=1 Complément de calcul algébrique et trigonométrique')
     assert response.status_code == 200
     assert isinstance(response.json, list)
     assert len(response.json) > 0
     assert response.json[0]['prenom'] == 'Test'
-    assert response.json[0]['difficulte'] == 'Easy'
+    assert response.json[0]['difficulte'] == '1'
     assert response.json[0]['subject'] == 'Maths'
-    assert response.json[0]['chapter'] == 'Algebra'
+    assert response.json[0]['chapter'] == '1 Complément de calcul algébrique et trigonométrique'
     assert response.json[0]['kholleur'] == 'M. Dupont'

@@ -40,7 +40,7 @@ else:
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def upload_file(file, filename):
+def upload_file_online(file, filename):
     if IS_PRODUCTION:
         # Upload to Google Cloud Storage
         bucket = storage_client.bucket(BUCKET_NAME)
@@ -51,7 +51,7 @@ def upload_file(file, filename):
         # Save to local filesystem
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(file_path)
-        return file_path
+        return filename
 
 # Commande de création d'admin
 
@@ -147,19 +147,11 @@ def logout():
 
 @app.route('/get_structure')
 def get_structure():
-    base_path = app.config['UPLOAD_FOLDER']
-    structure = {}
-
-    for root, dirs, files in os.walk(base_path):
-        for dir_name in dirs:
-            subject = os.path.basename(root)
-            chapter = dir_name
-            if subject:  # Vérifie que subject n'est pas vide
-                if subject not in structure:
-                    structure[subject] = []
-                structure[subject].append(chapter)
-
-    return jsonify(structure)
+     structure = {
+        "Maths": ["Chapitre 1 : Algèbre", "Chapitre 2 : Trigo"],
+        "Physique": ["Chapitre 1 : Optique"]
+     }
+     return jsonify(structure)
 
 @app.route('/get_kholleurs')
 def get_kholleurs():
@@ -178,48 +170,52 @@ def upload_file():
     if 'file' not in request.files:
         flash('No file part')
         return redirect(request.url)
+    
     file = request.files['file']
     if file.filename == '':
         flash('No selected file')
         return redirect(request.url)
+    
     if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        file_url = upload_file(file, filename)
         subject = request.form.get('subject')
         chapter = request.form.get('chapter')
         kholleur = request.form.get('kholleur')
         difficulty = request.form.get('difficulty')
-        kholleur = request.form.get('kholleur')
-        if not (subject and chapter and kholleur and difficulty and kholleur):
+        
+        if not (subject and chapter and kholleur and difficulty):
             flash('All fields are required')
             return redirect(request.url)
         
         # Générer un nom de fichier unique
         timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
         extension = file.filename.rsplit('.', 1)[1].lower()
-        new_filename = f"{kholleur}-{difficulty}-{timestamp}.{extension}"
-        new_filename = secure_filename(new_filename)
+
+        filename = secure_filename(f"{subject}_{chapter}_{kholleur}_{difficulty}_{timestamp}.{extension}")
+        try:
+            file_url = upload_file_online(file, filename)
+        except Exception as e:
+            flash(f'File upload failed: {str(e)}')
+            return redirect(request.url)
         
-        save_path = os.path.join(app.config['UPLOAD_FOLDER'], subject, chapter)
-        os.makedirs(save_path, exist_ok=True)
-        file.save(os.path.join(save_path, new_filename))
-        
-        # Save submission to database
-        image_url = os.path.join(subject, chapter, new_filename).replace("\\", "/")  # Use forward slashes
         new_submission = Submission(
             user_id=current_user.id,
             subject=subject,
             chapter=chapter,
             difficulty=difficulty,
-            image_url=file_url,
+            image_url=file_url,  # Assurez-vous que c'est bien ce que vous voulez enregistrer
             kholleur=kholleur,
             timestamp=datetime.utcnow()
         )
-        db.session.add(new_submission)
-        db.session.commit()
+        try:
+            db.session.add(new_submission)
+            db.session.commit()
+        except Exception as e:
+            flash(f'Database save failed: {str(e)}')
+            return redirect(request.url)
         
         flash('Fichier envoyé avec succès!', 'success')
         return redirect(url_for('index'))
+    
     flash('File type not allowed')
     return redirect(request.url)
 
@@ -252,7 +248,7 @@ def get_submissions():
 
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    return send_from_directory(app.config["UPLOAD_FOLDER"] ,filename)
 
 @app.route('/')
 def index():
