@@ -28,5 +28,5 @@ jobs:
 
     - name: Run tests
       run: |
-        flask --app app.py db upgrade
+        flask --app main.py db upgrade
         pytest
