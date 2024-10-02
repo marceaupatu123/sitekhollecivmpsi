@@ -245,6 +245,8 @@ def edit_user(user_id):
         user.first_name = request.form['first_name']
         user.last_name = request.form['last_name']
         user.email = request.form['email']
+        if request.form['password'] != '':
+            user.password = generate_password_hash(request.form['password'], method='pbkdf2:sha256')
         db.session.commit()
         flash('Utilisateur mis à jour avec succès!', 'success')
         return redirect(url_for('admin'))

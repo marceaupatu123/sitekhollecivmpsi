@@ -23,6 +23,10 @@
                 <label for="email">Email</label>
                 <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" required>
             </div>
+            <div class="form-group">
+                <label for="password">Mot de passe</label>
+                <input type="text" class="form-control" id="password" name="password">
+            </div>
             <button type="submit" class="btn btn-primary">Enregistrer</button>
             <a href="{{ url_for('admin') }}" class="btn btn-secondary">Annuler</a>
         </form>
