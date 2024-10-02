@@ -7,6 +7,7 @@ from sqlalchemy import ForeignKey
 import os
 from datetime import datetime
 from werkzeug.utils import secure_filename
+from flask_migrate import Migrate
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Nécessaire pour utiliser flash messages
@@ -19,6 +20,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
