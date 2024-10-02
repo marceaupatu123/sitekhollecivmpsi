@@ -1,10 +1,30 @@
-runtime: python39
+runtime: python310  # Utilise Python 3.10
 
-entrypoint: gunicorn -b :$PORT main:app
+entrypoint: gunicorn -b :$PORT main:app  # Point d'entrée de l'application
 
+# Configuration des instances
+instance_class: F1  # Choisis F1, la plus petite instance, qui est gratuite dans les quotas de Google App Engine
+
+# Configuration des requêtes
 handlers:
 - url: /static
   static_dir: static
 
 - url: /.*
   script: auto
+
+# Variables d'environnement
+env_variables:
+  FLASK_ENV: production  # Mode production pour Flask
+  SECRET_KEY: 'your-secret-key'  # Remplace par une vraie clé secrète
+
+# Paramètres de scalabilité automatique
+automatic_scaling:
+  min_instances: 0  # Réduire à zéro instances lorsqu'il n'y a pas de trafic pour éviter les coûts
+  max_instances: 2  # Limiter à 2 instances maximum pour rester dans les quotas gratuits
+  target_cpu_utilization: 0.75  # Utilisation CPU cible
+  target_throughput_utilization: 0.8  # Utilisation du débit cible
+
+# Configuration des logs
+beta_settings:
+  cloud_sql_instances: ""  # Si tu n'utilises pas de Cloud SQL, laisse cette ligne vide
