@@ -26,10 +26,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Set FLASK_APP environment variable
-      run: echo "FLASK_APP=app.py" >> $GITHUB_ENV
-
     - name: Run tests
       run: |
-        flask db upgrade
+        flask --app app.py db upgrade
         pytest
