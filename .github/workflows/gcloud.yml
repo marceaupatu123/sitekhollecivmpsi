@@ -20,7 +20,8 @@ jobs:
         version: 'latest' 
         project_id: sacred-ember-377216  # Remplacez par votre ID de projet Google Cloud
         service_account_key: ${{ secrets.GCP_SA_KEY }}  # Ajoutez votre clé de compte de service dans les secrets GitHub
-
+        GOOGLE_APPLICATION_CREDENTIALS: 'config/serviceAccountKey.json' 
+        
     - name: Cache dependencies
       uses: actions/cache@v2
       with:
