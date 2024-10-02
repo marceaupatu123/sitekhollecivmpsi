@@ -22,19 +22,20 @@ jobs:
         key: ${{ runner.os }}-gcloud
         restore-keys: |
           ${{ runner.os }}-gcloud-
-
+    
     - name: Set up Cloud SDK
       if: steps.cache-gcloud-sdk.outputs.cache-hit != 'true'
       run: |
         curl -sSL https://sdk.cloud.google.com | bash
-        echo "source /opt/hostedtoolcache/gcloud/path.bash.inc" >> $GITHUB_ENV
-
+        echo "CLOUDSDK_PYTHON_SITEPACKAGES=1" >> $GITHUB_ENV
+        echo "/opt/hostedtoolcache/gcloud/path.bash.inc" >> $GITHUB_ENV
+    
     - name: Initialize Cloud SDK
       run: |
         gcloud --quiet components update
         gcloud --quiet config set project sacred-ember-377216
         gcloud --quiet auth activate-service-account 287953057890-compute@developer.gserviceaccount.com --key-file ${{ secrets.GCP_SA_KEY }}
-
+    
     - name: Deploy to App Engine
       run: |
         gcloud app deploy app.yaml --quiet
