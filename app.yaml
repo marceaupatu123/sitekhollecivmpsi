@@ -24,7 +24,3 @@ automatic_scaling:
   max_instances: 2  # Limiter à 2 instances maximum pour rester dans les quotas gratuits
   target_cpu_utilization: 0.75  # Utilisation CPU cible
   target_throughput_utilization: 0.8  # Utilisation du débit cible
-
-# Configuration des logs
-beta_settings:
-  cloud_sql_instances: ""  # Si tu n'utilises pas de Cloud SQL, laisse cette ligne vide

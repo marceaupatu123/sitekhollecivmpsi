@@ -31,4 +31,5 @@ jobs:
 
     - name: Deploy to App Engine
       run: |
+        echo "${{ secrets.GCP_SA_KEY }}" > ${HOME}/serviceAccountKey.json
         gcloud app deploy app.yaml --quiet
