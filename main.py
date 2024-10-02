@@ -8,6 +8,7 @@ import os
 from datetime import datetime
 from werkzeug.utils import secure_filename
 from flask_migrate import Migrate
+from google.cloud import storage
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Nécessaire pour utiliser flash messages
@@ -23,6 +24,34 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
+
+# Détection de l'environnement
+IS_PRODUCTION = os.getenv('GAE_ENV', '').startswith('standard')
+
+if IS_PRODUCTION:
+    # Configuration pour Google Cloud Storage
+    storage_client = storage.Client()
+    BUCKET_NAME = 'sacred-ember-377216'
+else:
+    # Configuration pour le système de fichiers local
+    if not os.path.exists(UPLOAD_FOLDER):
+        os.makedirs(UPLOAD_FOLDER)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def upload_file(file, filename):
+    if IS_PRODUCTION:
+        # Upload to Google Cloud Storage
+        bucket = storage_client.bucket(BUCKET_NAME)
+        blob = bucket.blob(filename)
+        blob.upload_from_file(file)
+        return blob.public_url
+    else:
+        # Save to local filesystem
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(file_path)
+        return file_path
 
 # Commande de création d'admin
 
@@ -154,6 +183,8 @@ def upload_file():
         flash('No selected file')
         return redirect(request.url)
     if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        file_url = upload_file(file, filename)
         subject = request.form.get('subject')
         chapter = request.form.get('chapter')
         kholleur = request.form.get('kholleur')
@@ -180,7 +211,7 @@ def upload_file():
             subject=subject,
             chapter=chapter,
             difficulty=difficulty,
-            image_url=image_url,
+            image_url=file_url,
             kholleur=kholleur,
             timestamp=datetime.utcnow()
         )
