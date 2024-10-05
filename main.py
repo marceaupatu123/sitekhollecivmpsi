@@ -30,7 +30,6 @@ elif IS_LOCAL:
     except json.JSONDecodeError:
         raise ValueError("Le fichier jsonid.json contient des données JSON invalides")
 else:
-    env_file = os.getenv('GITHUB_ENV')
     # Initialisation de Firebase avec les identifiants fournis par la variable d'environnement
     service_account_info = os.environ.get('FIREBASE_SERVICE_ACCOUNT_KEY')
     if service_account_info is None:
@@ -58,7 +57,7 @@ IS_PRODUCTION = os.getenv('GAE_ENV', '').startswith('standard')
 if IS_PRODUCTION:
     # Configuration pour Google Cloud Storage
     storage_client = storage.Client()
-    BUCKET_NAME = 'sacred-ember-377216'
+    BUCKET_NAME = 'sacred-ember-377216.appspot.com'
 else:
     # Configuration pour le système de fichiers local
     if not os.path.exists(UPLOAD_FOLDER):
