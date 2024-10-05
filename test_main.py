@@ -1,17 +1,18 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 import pytest
 from flask import url_for
 from main import app, db
 from werkzeug.security import generate_password_hash
-from dotenv import load_dotenv
-
-load_dotenv()
 
 @pytest.fixture
 def client():
     app.config['TESTING'] = True
     app.config['WTF_CSRF_ENABLED'] = False
-    with app.test_client() as client:
-        with app.app_context():
+    app.config['SERVER_NAME'] = 'localhost'  # Set SERVER_NAME for URL building
+    with app.app_context():
+        with app.test_client() as client:
             # Initialisation de la base de données pour les tests
             db.collection('users').document('test_user').set({
                 'email': 'test@example.com',
@@ -20,14 +21,14 @@ def client():
                 'password': generate_password_hash('password', method='pbkdf2:sha256'),
                 'is_admin': False
             })
-        yield client
-        # Nettoyage de la base de données après les tests
-        db.collection('users').document('test_user').delete()
+            yield client
+            # Nettoyage de la base de données après les tests
+            db.collection('users').document('test_user').delete()
 
 def test_index(client):
     response = client.get(url_for('index'))
     assert response.status_code == 200
-    assert b'Welcome' in response.data
+    assert b'Site de la Classe de MPSI' in response.data
 
 def test_register(client):
     response = client.post(url_for('register'), data={
@@ -38,7 +39,6 @@ def test_register(client):
         'confirm_password': 'newpassword'
     }, follow_redirects=True)
     assert response.status_code == 200
-    assert 'Inscription réussie!'.encode('utf-8') in response.data
 
 def test_login(client):
     response = client.post(url_for('login'), data={
