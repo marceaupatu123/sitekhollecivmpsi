@@ -12,15 +12,19 @@ import json
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Nécessaire pour utiliser flash messages
 
-service_account_info = os.environ.get('FIREBASE_SERVICE_ACCOUNT_KEY')
-if service_account_info is None:
-    raise ValueError("FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set")
+# Détection de l'environnement Google Cloud
+IS_GCLOUD = os.getenv('GAE_ENV', '').startswith('standard') or os.getenv('K_SERVICE', False)
 
-service_account_info = json.loads(service_account_info)
-
-cred = credentials.Certificate(service_account_info)
-firebase_admin.initialize_app(cred)
-db = firestore.client()
+if IS_GCLOUD:
+    # Initialisation de Firebase avec les identifiants par défaut de l'application
+    cred = credentials.ApplicationDefault()
+else:
+    # Initialisation de Firebase avec les identifiants fournis par la variable d'environnement
+    service_account_info = os.environ.get('FIREBASE_SERVICE_ACCOUNT_KEY')
+    if service_account_info is None:
+        raise ValueError("FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set")
+    service_account_info = json.loads(service_account_info)
+    cred = credentials.Certificate(service_account_info)
 
 # Configuration
 UPLOAD_FOLDER = './Fichiers/'
