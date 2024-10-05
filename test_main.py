@@ -2,6 +2,9 @@ import pytest
 from flask import url_for
 from main import app, db
 from werkzeug.security import generate_password_hash
+from dotenv import load_dotenv
+
+load_dotenv()
 
 @pytest.fixture
 def client():

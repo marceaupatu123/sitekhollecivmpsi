@@ -14,10 +14,16 @@ app.secret_key = 'your_secret_key'  # Nécessaire pour utiliser flash messages
 
 # Détection de l'environnement Google Cloud
 IS_GCLOUD = os.getenv('GAE_ENV', '').startswith('standard') or os.getenv('K_SERVICE', False)
+IS_LOCAL = os.getenv('LOCAL_ENV', 'false').lower() == 'true'
 
 if IS_GCLOUD:
     # Initialisation de Firebase avec les identifiants par défaut de l'application
     cred = credentials.ApplicationDefault()
+elif IS_LOCAL:
+    # Initialisation de Firebase avec les identifiants à partir d'un fichier JSON en local
+    with open('./jsonid.json') as f:
+        service_account_info = json.load(f)
+    cred = credentials.Certificate(service_account_info)
 else:
     # Initialisation de Firebase avec les identifiants fournis par la variable d'environnement
     service_account_info = os.environ.get('FIREBASE_SERVICE_ACCOUNT_KEY')
@@ -25,6 +31,9 @@ else:
         raise ValueError("FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set")
     service_account_info = json.loads(service_account_info)
     cred = credentials.Certificate(service_account_info)
+
+firebase_admin.initialize_app(cred)
+db = firestore.client()
 
 # Configuration
 UPLOAD_FOLDER = './Fichiers/'
