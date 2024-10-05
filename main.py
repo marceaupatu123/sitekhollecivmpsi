@@ -12,7 +12,13 @@ import json
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Nécessaire pour utiliser flash messages
 
-service_account_info = json.loads(os.environ.get('FIREBASE_SERVICE_ACCOUNT_KEY'))
+service_account_file = os.environ.get('FIREBASE_SERVICE_ACCOUNT_KEY')
+if service_account_file is None:
+    raise ValueError("FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set")
+
+with open(service_account_file) as f:
+    service_account_info = json.load(f)
+
 cred = credentials.Certificate(service_account_info)
 firebase_admin.initialize_app(cred)
 db = firestore.client()
@@ -169,9 +175,6 @@ def get_kholleurs():
     }
     return jsonify(kholleurs)
 
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
 @app.route('/upload', methods=['POST'])
 @login_required
 def upload_file():
@@ -273,7 +276,7 @@ def admin():
     users_list = [user.to_dict() for user in users]
     return render_template('admin.html', users=users_list)
 
-@app.route('/admin/edit_user/<int:user_id>', methods=['GET', 'POST'])
+@app.route('/admin/edit_user/<user_id>', methods=['GET', 'POST'])
 @login_required
 def edit_user(user_id):
     if not current_user.is_admin:
@@ -292,7 +295,7 @@ def edit_user(user_id):
         return redirect(url_for('admin'))
     return render_template('edit_user.html', user=user)
 
-@app.route('/admin/delete_user/<int:user_id>', methods=['POST'])
+@app.route('/admin/delete_user/<user_id>', methods=['POST'])
 @login_required
 def delete_user(user_id):
     if not current_user.is_admin:
