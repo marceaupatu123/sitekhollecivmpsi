@@ -131,6 +131,12 @@
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script>
+
+        function viewDetails(submissionId) {
+            // Rediriger vers une nouvelle page avec l'ID de la soumission dans l'URL
+            window.location.href = `/submission/${submissionId}`;
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             const errorMessage = document.getElementById('error-message');
             
@@ -230,7 +236,7 @@
                             const submissionDiv = document.createElement('div');
                             submissionDiv.classList.add('col-md-4', 'mb-4');
                             submissionDiv.innerHTML = `
-                                    <a href="#" class="card kholle-card h-100 animate__animated animate__fadeIn text-decoration-none text-dark" style="border-radius: 20px; overflow: hidden">
+                                    <a href="#" class="card kholle-card h-100 animate__animated animate__fadeIn text-decoration-none text-dark" style="border-radius: 20px; overflow: hidden" onclick="viewDetails('${submission.id}')">
                                         <img src="${submission.image_url}" alt="Image de l'énoncé" class="card-img-top" style="height: 200px; max-width: 100%;">
                                         <div class="card-body">
                                             <span class="badge badge-pill badge-secondary mb-3">Sans Solutions</span>

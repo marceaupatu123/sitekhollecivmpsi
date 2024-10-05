@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Détails de la Soumission</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='../static/css/styles.css') }}">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="card">
+            <img src="{{ submission.image_url }}" class="card-img-top" alt="Image de l'énoncé">
+            <div class="card-body">
+                <h5 class="card-title">Détails de la Soumission</h5>
+                <p class="card-text"><strong>Prénom:</strong> {{ submission.prenom }}</p>
+                <p class="card-text"><strong>Matière:</strong> {{ submission.subject }}</p>
+                <p class="card-text"><strong>Chapitre:</strong> {{ submission.chapter }}</p>
+                <p class="card-text"><strong>Khôlleur:</strong> {{ submission.kholleur }}</p>
+                <p class="card-text"><strong>Date:</strong> {{ submission.date }}</p>
+                <p class="card-text"><strong>Difficulté:</strong> {{ submission.difficulte }}</p>
+                {% if is_admin or is_owner %}
+                    <button class="btn btn-danger" onclick="deleteSubmission('{{ submission.id }}')">Supprimer</button>
+                {% endif %}
+                <button class="btn btn-primary" onclick="proposeSolution('{{ submission.id }}')">Proposer une Solution</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function deleteSubmission(id) {
+            try {
+                const response = await fetch(`/delete_submission/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    alert('Soumission supprimée avec succès : ' + id);
+                } else {
+                    alert('Erreur : ' + data.message);
+                }
+            } catch (error) {
+                alert('Une erreur est survenue : ' + error);
+            }
+        }
+
+        function proposeSolution(id) {
+            alert('Proposer une solution pour : ' + id);
+        }
+    </script>
+</body>
+</html>
