@@ -12,12 +12,11 @@ import json
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Nécessaire pour utiliser flash messages
 
-service_account_file = os.environ.get('FIREBASE_SERVICE_ACCOUNT_KEY')
-if service_account_file is None:
+service_account_info = os.environ.get('FIREBASE_SERVICE_ACCOUNT_KEY')
+if service_account_info is None:
     raise ValueError("FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set")
 
-with open(service_account_file) as f:
-    service_account_info = json.load(f)
+service_account_info = json.loads(service_account_info)
 
 cred = credentials.Certificate(service_account_info)
 firebase_admin.initialize_app(cred)
