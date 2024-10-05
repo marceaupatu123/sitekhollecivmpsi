@@ -21,16 +21,24 @@ if IS_GCLOUD:
     cred = credentials.ApplicationDefault()
 elif IS_LOCAL:
     # Initialisation de Firebase avec les identifiants à partir d'un fichier JSON en local
-    with open('./jsonid.json') as f:
-        service_account_info = json.load(f)
-    cred = credentials.Certificate(service_account_info)
+    try:
+        with open('./jsonid.json') as f:
+            service_account_info = json.load(f)
+        cred = credentials.Certificate(service_account_info)
+    except FileNotFoundError:
+        raise ValueError("Le fichier jsonid.json est introuvable")
+    except json.JSONDecodeError:
+        raise ValueError("Le fichier jsonid.json contient des données JSON invalides")
 else:
     # Initialisation de Firebase avec les identifiants fournis par la variable d'environnement
     service_account_info = os.environ.get('FIREBASE_SERVICE_ACCOUNT_KEY')
     if service_account_info is None:
         raise ValueError("FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set")
-    service_account_info = json.loads(service_account_info)
-    cred = credentials.Certificate(service_account_info)
+    try:
+        service_account_info = json.loads(service_account_info)
+        cred = credentials.Certificate(service_account_info)
+    except json.JSONDecodeError:
+        raise ValueError("Invalid JSON data in FIREBASE_SERVICE_ACCOUNT_KEY environment variable")
 
 firebase_admin.initialize_app(cred)
 db = firestore.client()
