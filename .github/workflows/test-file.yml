@@ -11,6 +11,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    environment: GCP_SA_KEY
 
     steps:
     - name: Checkout code
@@ -28,10 +29,6 @@ jobs:
 
     - name: Set environment variables
       run: echo "FIREBASE_SERVICE_ACCOUNT_KEY=${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}" >> $GITHUB_ENV
-
-    - name: Debug environment variable
-      run: |
-        echo "FIREBASE_SERVICE_ACCOUNT_KEY=$FIREBASE_SERVICE_ACCOUNT_KEY"
 
     - name: Run tests
       run: |
