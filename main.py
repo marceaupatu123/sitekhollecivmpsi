@@ -30,6 +30,7 @@ elif IS_LOCAL:
     except json.JSONDecodeError:
         raise ValueError("Le fichier jsonid.json contient des données JSON invalides")
 else:
+    env_file = os.getenv('GITHUB_ENV')
     # Initialisation de Firebase avec les identifiants fournis par la variable d'environnement
     service_account_info = os.environ.get('FIREBASE_SERVICE_ACCOUNT_KEY')
     if service_account_info is None:

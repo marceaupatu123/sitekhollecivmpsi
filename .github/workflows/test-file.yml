@@ -26,9 +26,15 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+    
+    - name: Install jq
+      run: sudo apt-get install -y jq
 
     - name: Set environment variables
-      run: echo "FIREBASE_SERVICE_ACCOUNT_KEY=${{ secrets.GCP_SA_KEY }}" >> $GITHUB_ENV
+      run: echo "FIREBASE_SERVICE_ACCOUNT_KEY=$(echo '${{ secrets.GCP_SA_KEY }}' | jq -c .)" >> $GITHUB_ENV
+
+    - name: Set environment variables
+      run: echo "FIREBASE_SERVICE_ACCOUNT_KEY=$(echo '${{ secrets.GCP_SA_KEY }}' | jq -c .)" >> $GITHUB_ENV
 
     - name: Run tests
       run: |
