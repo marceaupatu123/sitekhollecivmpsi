@@ -7,41 +7,34 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <style>
-        .admin-header {
-            background-color: #8b8181;
-            color: white;
-            padding: 20px;
-            text-align: center;
+        .profile-picture {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 50%;
         }
-        .admin-container {
-            max-width: 800px;
-            margin: 20px auto;
-            background: #fff;
-            padding: 20px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-        }
-        .admin-table th, .admin-table td {
-            text-align: center;
-        }
-        .admin-actions button {
-            margin: 0 5px;
+        .badge-image {
+            width: 20px;
+            height: 20px;
+            margin-left: 5px;
         }
     </style>
 </head>
 <body>
-    <header class="admin-header">
+    <header class="bg-dark text-white text-center py-3">
         <h1>Administration - Gestion des Utilisateurs</h1>
     </header>
-    <div class="container admin-container">
+    <div class="container-fluid my-4">
         <h2>Liste des Utilisateurs</h2>
         <div class="table-responsive">
-            <table class="table table-bordered admin-table">
-                <thead class="table-dark">
+            <table class="table table-bordered table-striped text-center">
+                <thead class="thead-dark">
                     <tr>
                         <th scope="col">ID</th>
+                        <th scope="col">Photo de Profil</th>
                         <th scope="col">Nom</th>
                         <th scope="col">Email</th>
+                        <th scope="col">Badges</th>
                         <th scope="col">Actions</th>
                     </tr>
                 </thead>
@@ -49,9 +42,21 @@
                     {% for user in users %}
                     <tr>
                         <th scope="row">{{ user.id }}</th>
+                        <td>
+                            {% if user.profile_picture %}
+                                <img src="{{ user.profile_picture }}" class="profile-picture" alt="Photo de Profil">
+                            {% else %}
+                                <img src="{{ url_for('static', filename='images/default-profile.png') }}" class="profile-picture" alt="Photo de Profil">
+                            {% endif %}
+                        </td>
                         <td>{{ user.first_name }} {{ user.last_name }}</td>
                         <td>{{ user.email }}</td>
-                        <td class="admin-actions">
+                        <td>
+                            {% for badge in user.badges %}
+                                <img src="{{ badge.image_url }}" class="badge-image" alt="{{ badge.title }}" title="{{ badge.title }}">
+                            {% endfor %}
+                        </td>
+                        <td>
                             <a href="{{ url_for('edit_user', user_id=user.id) }}" class="btn btn-warning btn-sm">Modifier</a>
                             <form action="{{ url_for('delete_user', user_id=user.id) }}" method="POST" style="display:inline;">
                                 <button type="submit" class="btn btn-danger btn-sm">Supprimer</button>
@@ -62,10 +67,9 @@
                 </tbody>
             </table>
         </div>
-        </div>
     </div>
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/5.0.0-beta2/js/bootstrap.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>

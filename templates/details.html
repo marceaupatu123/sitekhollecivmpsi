@@ -6,9 +6,29 @@
     <title>Détails de la Soumission</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='../static/css/styles.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.18/summernote-bs4.min.css" rel="stylesheet">
+    <style>
+      
+    </style>
 </head>
 <body>
     <div class="container mt-5">
+        <!-- Messages Flash -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="alert-container">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
         <div class="card">
             <img src="{{ submission.image_url }}" class="card-img-top" alt="Image de l'énoncé">
             <div class="card-body">
@@ -18,16 +38,172 @@
                 <p class="card-text"><strong>Chapitre:</strong> {{ submission.chapter }}</p>
                 <p class="card-text"><strong>Khôlleur:</strong> {{ submission.kholleur }}</p>
                 <p class="card-text"><strong>Date:</strong> {{ submission.date }}</p>
-                <p class="card-text"><strong>Difficulté:</strong> {{ submission.difficulte }}</p>
+                <p class="card-text"><strong>Difficulté:</strong> <span id="difficulty-stars"></span></p>
                 {% if is_admin or is_owner %}
                     <button class="btn btn-danger" onclick="deleteSubmission('{{ submission.id }}')">Supprimer</button>
                 {% endif %}
                 <button class="btn btn-primary" onclick="proposeSolution('{{ submission.id }}')">Proposer une Solution</button>
+                <button class="btn btn-secondary" onclick="window.history.back();">Retour</button>
             </div>
         </div>
     </div>
 
+    <!-- Comment Section -->
+    <div class="container mt-5">
+        <h3>Commentaires</h3>
+        <div id="comments-section">
+            <!-- Existing comments will be loaded here -->
+            {% for comment in comments %}
+            <div class="media mb-4 comment" id="comment-{{ comment.id }}">
+                <img class="d-flex mr-3 profile-picture" src="{{ comment.user.profile_picture }}" alt="Profile Picture">
+                <div class="media-body">
+                    <h5 class="mt-0 d-flex justify-content-between align-items-center">
+                        <span>
+                            {{ comment.user.name }}
+                            {% for badge in comment.user.badges %}
+                                <img src="{{ badge.image_url }}" class="badge-image" alt="{{ badge.title }}" title="{{ badge.title }}">
+                            {% endfor %}
+                        </span>
+                        <div class="d-flex align-items-center">
+                            {% if is_admin or current_user.id == comment.user.id %}
+                            <button class="btn btn-light btn-sm d-flex align-items-center mx-1" onclick="deleteComment('{{ comment.id }}')">
+                                <img src="https://cdn-icons-png.flaticon.com/512/6861/6861362.png" alt="Supprimer" style="height: 20px;">
+                            </button>
+                        {% endif %}
+                        
+                        <button class="btn btn-light btn-sm d-flex align-items-center mx-1 reply-comment-btn" data-comment-id="{{ comment.id }}" data-comment-user="{{ comment.user.name }}" data-contenu="{{ comment.message}}">
+                            <img src="https://cdn-icons-png.flaticon.com/512/25/25691.png" alt="Répondre" style="height: 20px;" />
+                        </button>
+                    </div>
+                    </h5>
+                    {{ comment.message | safe }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <form id="comment-form">
+            <div class="form-group">
+                <label for="comment">Votre Commentaire</label>
+                <div id="comment-summernote"></div>
+            </div>
+            <button type="submit" class="btn btn-primary">Poster</button>
+        </form>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.18/summernote-bs4.min.js"></script>
+    <script src="https://risibank.fr/downloads/web-api/risibank.js"></script>
     <script>
+        function generateStars(difficulty) {
+            let stars = '';
+            for (let i = 0; i < 5; i++) {
+                stars += i < difficulty ? '★' : '☆';
+            }
+            return stars;
+        }
+    
+        $(document).ready(function() {
+            // Initialiser Summernote
+            $('#comment-summernote').summernote({
+                height: 300,
+                toolbar: [
+                    ['style', ['bold', 'italic', 'underline']],
+                    ['para', ['ul', 'ol', 'paragraph']],
+                    ['insert', ['link', 'picture', 'video']],
+                    ['view', ['fullscreen', 'codeview']],
+                    ['mybutton', ['risibank']]
+                ],
+                buttons: {
+                    risibank: function(context) {
+                        var ui = $.summernote.ui;
+                        var button = ui.button({
+                            contents: '<img src="https://risibank.fr/logo.png" alt="Risibank" style="height: 20px;">',
+                            tooltip: 'Risibank',
+                            click: function() {
+                                RisiBank.activate({
+                                    type: 'overlay',
+                                    theme: 'light',
+                                    mediaSize: 'sm',
+                                    navbarSize: 'sm',
+                                    defaultTab: 'top',
+                                    showNSFW: false,
+                                    allowUsernameSelection: false,
+                                    showCopyButton: false,
+                                    onSelectMedia: ({ id, type, media }) => {
+                                        $('#comment-summernote').summernote('insertImage', media.cache_url, function ($image) {
+                                            $image.addClass('risibank-image');
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                        return button.render();
+                    }
+                }
+            });
+    
+            // Set difficulty stars
+            const difficulty = {{ submission.difficulte }};
+            document.getElementById('difficulty-stars').innerHTML = generateStars(difficulty);
+    
+            // Gestion du bouton "Répondre" pour les commentaires
+            $(document).on('click', '.reply-comment-btn', function() {
+                const commentUser = $(this).data('comment-user');
+                const commentMessage = $(this).data('contenu');
+                const quotedMessage = `<blockquote><strong>${commentUser} a écrit :</strong><br>${commentMessage}</blockquote>`;
+                
+                // Insérer dans Summernote en utilisant la méthode 'code' pour gérer les balises HTML et les images
+                $('#comment-summernote').summernote('code', quotedMessage + $('#comment-summernote').summernote('code'));
+            });
+    
+            // Poster un commentaire
+            $('#comment-form').on('submit', async function(event) {
+                event.preventDefault();
+                const comment = $('#comment-summernote').summernote('code');
+                if (comment) {
+                    try {
+                        const response = await fetch('/post_comment', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ message: comment, submission_id: '{{ submission.id }}' })
+                        });
+                        const data = await response.json();
+                        if (data.success) {
+                            location.reload();  // Recharger la page après l'ajout du commentaire
+                        } else {
+                            alert('Erreur : ' + data.message);
+                        }
+                    } catch (error) {
+                        alert('Une erreur est survenue : ' + error);
+                    }
+                }
+            });
+        });
+    
+        // Supprimer un commentaire
+        async function deleteComment(commentId) {
+            try {
+                const response = await fetch(`/delete_comment/${commentId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById(`comment-${commentId}`).remove();
+                } else {
+                    alert('Erreur : ' + data.message);
+                }
+            } catch (error) {
+                alert('Une erreur est survenue : ' + error);
+            }
+        }
+    
+        // Supprimer une soumission
         async function deleteSubmission(id) {
             try {
                 const response = await fetch(`/delete_submission/${id}`, {
@@ -36,20 +212,16 @@
                         'Content-Type': 'application/json'
                     }
                 });
-                const data = await response.json();
-                if (data.success) {
-                    alert('Soumission supprimée avec succès : ' + id);
-                } else {
-                    alert('Erreur : ' + data.message);
-                }
             } catch (error) {
                 alert('Une erreur est survenue : ' + error);
             }
         }
-
+    
+        // Proposer une solution
         function proposeSolution(id) {
             alert('Proposer une solution pour : ' + id);
         }
     </script>
+    
 </body>
 </html>

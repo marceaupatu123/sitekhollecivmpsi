@@ -1,20 +1,20 @@
 from flask import Flask, jsonify, render_template, request, redirect, url_for, flash, session, send_from_directory
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 import os
 from datetime import datetime
-from werkzeug.utils import secure_filename
 from google.cloud import storage
 import firebase_admin
 from firebase_admin import credentials, firestore
 import json
-from io import BytesIO
-from PIL import Image
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from functools import lru_cache
+from concurrent.futures import ThreadPoolExecutor
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'  # Nécessaire pour utiliser flash messages
+app.secret_key = 'your_secret_key'
 
 # Limiter configuration
 limiter = Limiter(
@@ -23,7 +23,8 @@ limiter = Limiter(
     default_limits=["200 per day", "50 per hour"]
 )
 
-# Détection de l'environnement Google Cloud
+# Initialize Firestore connection
+cred = None
 IS_GCLOUD = os.getenv('GAE_ENV', '').startswith('standard') or os.getenv('K_SERVICE', False)
 IS_LOCAL = os.getenv('LOCAL_ENV', 'false').lower() == 'true'
 
@@ -60,21 +61,104 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB max file size
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
-# Détection de l'environnement
-IS_PRODUCTION = os.getenv('GAE_ENV', '').startswith('standard')
-
+# Initialize Google Cloud Storage client
 if IS_LOCAL:
     storage_client = storage.Client.from_service_account_json('./jsonid.json')
 else:
     storage_client = storage.Client()
-    
+
 BUCKET_NAME = 'sacred-ember-377216.appspot.com'
+
+# Thread pool for async tasks
+executor = ThreadPoolExecutor(max_workers=4)
+
+@lru_cache(maxsize=128)
+def get_badge_info(badge_ids: tuple):
+
+    badges = []
+    for badge_id in badge_ids:
+        badge_ref = db.collection('badges').document(str(badge_id)).get()
+        if badge_ref.exists:
+            badges.append(badge_ref.to_dict())
+    return badges
+
+def get_comments(submission_id):
+    # Fetch comments and user IDs in one go
+    comments_ref = db.collection('comments').where('submission_id', '==', submission_id).order_by('timestamp').stream()
+    comments_data = []
+    for comment in comments_ref:
+        comment_data = comment.to_dict()
+        comment_data['id'] = comment.id  # Ajouter l'ID du document aux données du commentaire
+        comments_data.append(comment_data)
+    user_ids = {comment['user_id'] for comment in comments_data}
+
+    # Log the fetched comments and user IDs for debugging
+    print(f"Fetched comments: {comments_data}")
+    print(f"User IDs: {user_ids}")
+
+    # Check if user_ids is not empty before querying
+    if not user_ids:
+        return []
+
+    # Fetch all users in one go
+    users = {}
+    for user_id in user_ids:
+        user_doc = db.collection('users').document(user_id).get()
+        if user_doc.exists:
+            users[user_id] = user_doc.to_dict()
+
+    # Log the fetched users for debugging
+    print(f"Fetched users: {users}")
+
+    # Construct the final list of comments
+    comments = []
+    for comment_data in comments_data:
+        user_id = comment_data['user_id']
+        if user_id in users:
+            comment_user_data = users[user_id]
+            badges_data = comment_user_data.get('badges', [])
+            if badges_data:
+                badges = get_badge_info(tuple(badges_data))
+            else :
+                badges = []
+            comments.append({
+                'user': {
+                    'name': comment_user_data['first_name'],
+                    'profile_picture': comment_user_data.get('profile_picture'),
+                    'badges': badges,
+                    'id': user_id
+                },
+                'message': comment_data['message'],
+                'timestamp': comment_data['timestamp'].strftime('%Y-%m-%d %H:%M:%S'),
+                'id': comment_data['id']
+            })
+        else:
+            # Log missing user data for debugging
+            print(f"Missing user data for user_id: {user_id}")
+            # Handle the case where the user data is missing
+            comments.append({
+                'user': {
+                    'name': 'Unknown',
+                    'profile_picture': None,
+                    'badges': [],
+                    'id': 0
+                },
+                'message': comment_data['message'],
+                'timestamp': comment_data['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
+            })
+    return comments
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def compress_image(file):
+    from PIL import Image
+    from io import BytesIO
     image = Image.open(file)
+    
+    if image.mode == 'RGBA':
+        image = image.convert('RGB')
+
     output = BytesIO()
     image.save(output, format='JPEG', quality=85)
     output.seek(0)
@@ -112,13 +196,15 @@ def create_admin():
     print('Admin user created successfully!')
 
 class User(UserMixin):
-    def __init__(self, id, email, first_name, last_name, password, is_admin=False):
+    def __init__(self, id, email, first_name, last_name, password, is_admin=False, profile_picture=None, badges=[]):
         self.id = id
         self.email = email
         self.first_name = first_name
         self.last_name = last_name
         self.password = password
         self.is_admin = is_admin
+        self.profile_picture = profile_picture
+        self.badges = badges or []
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -152,7 +238,9 @@ def register():
             'last_name': last_name,
             'email': email,
             'password': generate_password_hash(password, method='pbkdf2:sha256'),
-            'is_admin': False
+            'is_admin': False,
+            'profile_picture': "https://risibank.fr/cache/medias/0/9/966/96634/full.jpeg",
+            'badges': []
         }
         db.collection('users').add(new_user)
         flash('Inscription réussie! Vous pouvez maintenant vous connecter.', 'success')
@@ -234,8 +322,9 @@ def upload_file():
 
         filename = secure_filename(f"{subject}_{chapter}_{kholleur}_{difficulty}_{timestamp}.{extension}")
         
-        # Compress the image
-        compressed_file = compress_image(file)
+        # Compress the image asynchronously
+        future = executor.submit(compress_image, file)
+        compressed_file = future.result()
         
         try:
             file_url = upload_file_online(compressed_file, filename)
@@ -305,9 +394,18 @@ def admin():
     if not current_user.is_admin:
         flash('Accès refusé : Vous n\'êtes pas administrateur.', 'error')
         return redirect(url_for('index'))
-    users = db.collection('users').stream()
-    users_list = [user.to_dict() for user in users]
-    return render_template('admin.html', users=users_list)
+    users_ref = db.collection('users').stream()
+    users = []
+    for user in users_ref:
+        user_data = user.to_dict()
+        user_data['id'] = user.id
+        badges = []
+        if 'badges' in user_data:
+            badges = get_badge_info(tuple(user_data['badges']))
+        user_data['badges'] = badges
+        users.append(user_data)
+    
+    return render_template('admin.html', users=users)
 
 @app.route('/admin/edit_user/<user_id>', methods=['GET', 'POST'])
 @login_required
@@ -365,26 +463,28 @@ def get_submission_details(submission_id):
         is_admin = current_user.is_admin
         is_owner = current_user.id == submission_data['user_id']
 
-        return render_template('details.html', submission=result, is_admin=is_admin, is_owner=is_owner)
+        # Récupération des commentaires
+        comments = get_comments(submission_id)
+        
+        return render_template('details.html', submission=result, comments=comments, is_admin=is_admin, is_owner=is_owner)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
+    
 @app.route('/delete_submission/<submission_id>', methods=['DELETE'])
 def delete_submission(submission_id):
     try:
         submission_ref = db.collection('submissions').document(submission_id)
         submission = submission_ref.get()
         if not submission.exists:
-            jsonify({'status': 'error'}), 404
             flash('Submission not found', 'error')
-            return redirect(url_for('index'))
+            return jsonify({'status': 'error', 'message': 'Submission not found'}), 404
 
         submission_data = submission.to_dict()
         user_id = submission_data['user_id']
         
         if current_user.id != user_id and not current_user.is_admin:
             flash('Unauthorized', 'error')
-            return redirect(url_for('index'))
+            return jsonify({'status': 'error', 'message': 'Unauthorized'}), 403
 
         # Suppression de l'image associée
         image_url = submission_data.get('image_url')
@@ -395,15 +495,75 @@ def delete_submission(submission_id):
             blob = bucket.blob(object_name)
             blob.delete()
 
+        # Suppression des commentaires associés
+        comments_ref = db.collection('comments').where('submission_id', '==', submission_id).stream()
+        for comment in comments_ref:
+            comment.reference.delete()
+
         # Suppression de la soumission
         submission_ref.delete()
-        flash('Submission and image deleted successfully', 'success')
-        jsonify({'status': 'success'}), 200
+        flash('Enoncé de Khôlle supprimé avec succès!', 'success')
         return redirect(url_for('index'))
     except Exception as e:
-        jsonify({'status': 'error', 'message': f'An error occurred: {str(e)}'}), 500
         flash(f'An error occurred: {str(e)}', 'error')
-        return redirect(url_for('index'))
+        return jsonify({'status': 'error', 'message': f'An error occurred: {str(e)}'}), 500
     
+@app.route('/post_comment', methods=['POST'])
+@login_required
+def post_comment():
+    data = request.json
+    new_comment = {
+        'user_id': current_user.id,
+        'submission_id': data['submission_id'],
+        'message': data['message'],
+        'timestamp': datetime.utcnow()
+    }
+    
+    # Ajouter le nouveau commentaire à la collection 'comments'
+    db.collection('comments').add(new_comment)
+    
+    # Récupérer les données de l'utilisateur
+    user_ref = db.collection('users').document(current_user.id).get()
+    
+    if not user_ref.exists:
+        return jsonify({'error': 'User not found'}), 404
+    
+    user_data = user_ref.to_dict()
+
+    flash('Commentaire ajouté avec succès!', 'success')
+    
+    return jsonify({
+        'success': True,
+        'comment': {
+            'user': {
+                'name': user_data['first_name'],
+                'profile_picture': user_data.get('profile_picture'),
+                'badges': user_data.get('badges', [])
+            },
+            'message': data['message'],
+            'timestamp': new_comment['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
+        }
+    })
+
+@app.route('/delete_comment/<comment_id>', methods=['DELETE'])
+def delete_comment(comment_id):
+    try:
+        comment_ref = db.collection('comments').document(comment_id)
+        comment = comment_ref.get()
+        if not comment.exists:
+            flash('Commentaire introuvable', 'error')
+            return jsonify({'success': False, 'message': 'Commentaire non trouvé'}), 404
+
+        comment_data = comment.to_dict()
+        if current_user.is_admin or current_user.id == comment_data['user_id']:
+            comment_ref.delete()
+            return jsonify({'success': True}), 200
+        else:
+            flash('Non autorisé', 'error')
+            return jsonify({'success': False, 'message': 'Non autorisé'}), 403
+    except Exception as e:
+        flash(f'Une erreur s\'est produite: {str(e)}', 'error')
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=8080)
