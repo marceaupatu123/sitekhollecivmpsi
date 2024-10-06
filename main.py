@@ -27,10 +27,11 @@ limiter = Limiter(
 cred = None
 IS_GCLOUD = os.getenv('GAE_ENV', '').startswith('standard') or os.getenv('K_SERVICE', False)
 IS_LOCAL = os.getenv('LOCAL_ENV', 'false').lower() == 'true'
+IS_GITHUB_ACTIONS = os.getenv('GITHUB_ACTIONS', 'false').lower() == 'true'
 
 if IS_GCLOUD:
     cred = credentials.ApplicationDefault()
-elif IS_LOCAL:
+elif IS_LOCAL or IS_GITHUB_ACTIONS:
     try:
         with open('./jsonid.json') as f:
             service_account_info = json.load(f)
@@ -155,7 +156,7 @@ def compress_image(file):
     from PIL import Image
     from io import BytesIO
     image = Image.open(file)
-    
+
     if image.mode == 'RGBA':
         image = image.convert('RGB')
 
