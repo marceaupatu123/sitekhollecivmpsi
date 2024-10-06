@@ -27,6 +27,7 @@ limiter = Limiter(
 cred = None
 IS_GCLOUD = os.getenv('GAE_ENV', '').startswith('standard') or os.getenv('K_SERVICE', False)
 IS_LOCAL = os.getenv('LOCAL_ENV', 'false').lower() == 'true'
+IS_GITHUB_ACTIONS = os.getenv('GITHUB_ACTIONS', 'false').lower() == 'true'
 
 if IS_GCLOUD:
     cred = credentials.ApplicationDefault()
@@ -39,7 +40,7 @@ elif IS_LOCAL:
         raise ValueError("Le fichier jsonid.json est introuvable")
     except json.JSONDecodeError:
         raise ValueError("Le fichier jsonid.json contient des données JSON invalides")
-else:
+elif IS_GITHUB_ACTIONS:
     service_account_info = os.environ.get('FIREBASE_SERVICE_ACCOUNT_KEY')
     if service_account_info is None:
         raise ValueError("FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set")

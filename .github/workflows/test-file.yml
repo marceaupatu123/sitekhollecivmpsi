@@ -33,6 +33,12 @@ jobs:
     - name: Set environment variables
       run: echo "FIREBASE_SERVICE_ACCOUNT_KEY=$(echo '${{ secrets.GCP_SA_KEY }}' | jq -c .)" >> $GITHUB_ENV
 
+    - name: Authenticate to Google Cloud
+      run: |
+          echo "${{ secrets.GCP_SA_KEY }}" > $HOME/gcloud.json
+          gcloud auth activate-service-account --key-file=$HOME/gcloud.json
+          export GOOGLE_APPLICATION_CREDENTIALS=$HOME/gcloud.json
+
     - name: Run tests
       run: |
         pytest test_main.py
