@@ -27,11 +27,10 @@ limiter = Limiter(
 cred = None
 IS_GCLOUD = os.getenv('GAE_ENV', '').startswith('standard') or os.getenv('K_SERVICE', False)
 IS_LOCAL = os.getenv('LOCAL_ENV', 'false').lower() == 'true'
-IS_GITHUB_ACTIONS = os.getenv('GITHUB_ACTIONS', 'false').lower() == 'true'
 
 if IS_GCLOUD:
     cred = credentials.ApplicationDefault()
-elif IS_LOCAL or IS_GITHUB_ACTIONS:
+elif IS_LOCAL:
     try:
         with open('./jsonid.json') as f:
             service_account_info = json.load(f)
