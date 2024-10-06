@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, render_template, request, redirect, url_for, flash, session, send_from_directory
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user, AnonymousUserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import os
@@ -44,12 +44,19 @@ elif IS_LOCAL:
     except json.JSONDecodeError:
         raise ValueError("Le fichier jsonid.json contient des données JSON invalides")
 elif IS_GITHUB_ACTIONS:
-    service_account_info = os.environ.get('FIREBASE_SERVICE_ACCOUNT_KEY')
+     service_account_info = os.environ.get('FIREBASE_SERVICE_ACCOUNT_KEY')
     if service_account_info is None:
         raise ValueError("FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set")
     try:
         service_account_info = json.loads(service_account_info)
         cred = credentials.Certificate(service_account_info)
+        
+        # Write the service account info to a temporary file
+        with open('service_account.json', 'w') as f:
+            json.dump(service_account_info, f)
+        
+        # Set the GOOGLE_APPLICATION_CREDENTIALS environment variable
+        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.abspath('service_account.json')
     except json.JSONDecodeError:
         raise ValueError("Invalid JSON data in FIREBASE_SERVICE_ACCOUNT_KEY environment variable")
 
@@ -464,8 +471,12 @@ def get_submission_details(submission_id):
             'user_id': submission_data['user_id']
         }
         
-        is_admin = current_user.is_admin
-        is_owner = current_user.id == submission_data['user_id']
+        is_admin = False
+        is_owner = False
+
+        if not isinstance(current_user, AnonymousUserMixin):
+            is_admin = current_user.is_admin
+            is_owner = current_user.id == submission_data['user_id']
 
         # Récupération des commentaires
         comments = get_comments(submission_id)
