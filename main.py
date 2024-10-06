@@ -26,8 +26,11 @@ limiter = Limiter(
 # Initialize Firestore connection
 cred = None
 IS_GITHUB_ACTIONS = os.getenv('GITHUB_ACTIONS', 'false').lower() == 'true'
+print(f"IS_GITHUB_ACTIONS: {IS_GITHUB_ACTIONS}")
 IS_GCLOUD = os.getenv('GAE_ENV', '').startswith('standard') or os.getenv('K_SERVICE', False) and not IS_GITHUB_ACTIONS
+print(f"IS_GCLOUD: {IS_GCLOUD}")
 IS_LOCAL = os.getenv('LOCAL_ENV', 'false').lower() == 'true'
+print(f"IS_LOCAL: {IS_LOCAL}")
 
 if IS_GCLOUD:
     cred = credentials.ApplicationDefault()
