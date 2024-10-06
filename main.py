@@ -45,9 +45,9 @@ elif IS_LOCAL:
         raise ValueError("Le fichier jsonid.json contient des données JSON invalides")
 elif IS_GITHUB_ACTIONS:
      service_account_info = os.environ.get('FIREBASE_SERVICE_ACCOUNT_KEY')
-    if service_account_info is None:
+     if service_account_info is None:
         raise ValueError("FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set")
-    try:
+     try:
         service_account_info = json.loads(service_account_info)
         cred = credentials.Certificate(service_account_info)
         
@@ -57,7 +57,7 @@ elif IS_GITHUB_ACTIONS:
         
         # Set the GOOGLE_APPLICATION_CREDENTIALS environment variable
         os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.abspath('service_account.json')
-    except json.JSONDecodeError:
+     except json.JSONDecodeError:
         raise ValueError("Invalid JSON data in FIREBASE_SERVICE_ACCOUNT_KEY environment variable")
 
 firebase_admin.initialize_app(cred)
