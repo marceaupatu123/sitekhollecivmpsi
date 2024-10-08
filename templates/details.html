@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+    {% include 'icon.html' %}
+    {% include 'header.html' %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Détails de la Soumission</title>
@@ -61,7 +63,7 @@
                         <span>
                             {{ comment.user.name }}
                             {% for badge in comment.user.badges %}
-                                <img src="{{ badge.image_url }}" class="badge-image" alt="{{ badge.title }}" title="{{ badge.title }}">
+                                <img src="{{ badge.image_url }}" class="badge-image ml-0" alt="{{ badge.title }}" title="{{ badge.title }}">
                             {% endfor %}
                         </span>
                         <div class="d-flex align-items-center">
@@ -114,6 +116,35 @@
                     ['view', ['fullscreen', 'codeview']],
                     ['mybutton', ['risibank']]
                 ],
+                callbacks: {
+                    onImageUpload: function(files) {
+                        let loadingMessage = $('<div class="loading-message">Chargement en cours...</div>');
+                        $('#comment-summernote').next('.note-editor').append(loadingMessage);
+                        let imagesUploaded = 0;
+                        for (let i = 0; i < files.length; i++) {
+                            uploadImage(files[i], function() {
+                                imagesUploaded++;
+                                if (imagesUploaded === files.length) {
+                                    loadingMessage.remove();
+                                }
+                            });
+                        }
+                    },
+                    onMediaDelete: function(target) {
+                    let imageUrl = target[0].src;
+                    $.ajax({
+                        url: '/delete_image',
+                        method: 'DELETE',
+                        data: { url: imageUrl },
+                        success: function(response) {
+                            console.log('Image deleted from server');
+                        },
+                        error: function(response) {
+                            console.error('Error deleting image: ' + response.responseJSON.error);
+                        }
+                    });
+                }
+                },
                 buttons: {
                     risibank: function(context) {
                         var ui = $.summernote.ui;
@@ -144,7 +175,7 @@
             });
     
             // Set difficulty stars
-            const difficulty = {{ submission.difficulte }};
+            const difficulty =  {{ submission.difficulte }};
             document.getElementById('difficulty-stars').innerHTML = generateStars(difficulty);
     
             // Gestion du bouton "Répondre" pour les commentaires
@@ -184,27 +215,28 @@
         });
     
         // Supprimer un commentaire
-        async function deleteComment(commentId) {
-            try {
-                const response = await fetch(`/delete_comment/${commentId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-                const data = await response.json();
-                if (data.success) {
-                    document.getElementById(`comment-${commentId}`).remove();
-                } else {
-                    alert('Erreur : ' + data.message);
+            async function deleteSubmission(id) {
+        try {
+            const response = await fetch(`/delete_submission/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
                 }
-            } catch (error) {
-                alert('Une erreur est survenue : ' + error);
+            });
+            const data = await response.json();
+            if (data.status === "success") {
+                alert('Submission deleted successfully!');
+                    window.location.href = "/";
+            } else {
+                alert('Erreur : ' + data.message);
             }
+        } catch (error) {
+            alert('Une erreur est survenue : ' + error);
         }
+    }
     
         // Supprimer une soumission
-        async function deleteSubmission(id) {
+                async function deleteSubmission(id) {
             try {
                 const response = await fetch(`/delete_submission/${id}`, {
                     method: 'DELETE',
@@ -212,15 +244,57 @@
                         'Content-Type': 'application/json'
                     }
                 });
+                const data = await response.json();
+                if (data.status === "success") {
+                        window.location.href = "/";
+                } else {
+                    alert('Erreur : ' + data.message);
+                }
             } catch (error) {
                 alert('Une erreur est survenue : ' + error);
             }
         }
+
+    function uploadImage(file) {
+        let data = new FormData();
+    data.append('file', file);
+
+    $.ajax({
+        url: '/upload_image_summernote',
+        method: 'POST',
+        data: data,
+        processData: false,
+        contentType: false,
+        success: function(response) {
+            console.log(response);
+            $('#comment-summernote').summernote('insertImage', response.url);
+            if (callback) callback();
+        },
+        error: function(response) {
+            alert('Error uploading image: ' + response.responseJSON.error);
+            if (callback) callback(); 
+        }
+     });
+    }
     
         // Proposer une solution
         function proposeSolution(id) {
             alert('Proposer une solution pour : ' + id);
         }
+
+        function deleteComment(commentId) {
+            $.ajax({
+                url: `/delete_comment/${commentId}`,
+                method: 'DELETE',
+                contentType: 'application/json',
+                success: function(response) {
+                    $('#comment-' + commentId).remove();
+                },
+                error: function(response) {
+                    alert('Erreur lors de la suppression du commentaire : ' + response.responseJSON.error);
+                }
+            });
+    }
     </script>
     
 </body>

@@ -1,37 +1,16 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+    {% include 'icon.html' %}
+    {% include 'header.html' %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Site de la Classe de MPSI</title>
+    <title>Prépa Alpha CIV</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-    <script>
-        function refreshPage() {
-            setTimeout(function() {
-                window.location.reload();
-            }, 2000); // Rafraîchit la page après 2 secondes
-        }
-    </script>
 </head>
 <body>
-    <header class="bg-primary text-white text-center py-3">
-        <div class="container">
-            <h1 class="site-title">Site de la Classe de MPSI</h1>
-            <div>
-                {% if current_user.is_authenticated %}
-                    <a href="{{ url_for('logout') }}" class="btn btn-light">Se déconnecter</a>
-                    {% if current_user.is_admin %}
-                        <a href="{{ url_for('admin') }}" class="btn btn-light">Admin</a>
-                    {% endif %}
-                {% else %}
-                    <a href="{{ url_for('login') }}" class="btn btn-light">Se connecter</a>
-                    <a href="{{ url_for('register') }}" class="btn btn-light">S'inscrire</a>
-                {% endif %}
-            </div>
-        </div>
-    </header>
     <div class="container mt-4">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}

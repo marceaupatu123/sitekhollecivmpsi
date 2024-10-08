@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    {% include 'icon.html' %}
+    {% include 'header.html' %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon Profil</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-6 offset-md-3">
+                <h2>Mon Profil</h2>
+                <div class="text-center mb-4">
+                    <img src="{{ profile_picture_url }}" alt="Photo de profil" class="rounded-circle" style="width: 150px; height: 150px;">
+                </div>
+                <!-- Section des badges -->
+                <div class="text-center mb-4">
+                    <h3>Mes Badges</h3>
+                    <div class="d-flex justify-content-center flex-wrap">
+                        {% for badge in badges %}
+                            <div class="badge-item m-2">
+                                <img src="{{ badge.image_url }}" alt="{{ badge.title }}" title="{{ badge.title }}" class="rounded" style="width: 50px; height: 50px;">
+                                <p>{{ badge.name }}</p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <h2>Changer la photo de profil</h2>
+                <form action="{{ url_for('update_profile') }}" method="post" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="profile_picture">Nouvelle photo de profil:</label>
+                        <input type="file" name="profile_picture" id="profile_picture" class="form-control-file" accept="image/*" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Mettre à jour</button>
+                </form>
+                <hr>
+                <h2>Changer le mot de passe</h2>
+                <form action="{{ url_for('update_password') }}" method="post">
+                    <div class="form-group">
+                        <label for="current_password">Mot de passe actuel:</label>
+                        <input type="password" name="current_password" id="current_password" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="new_password">Nouveau mot de passe:</label>
+                        <input type="password" name="new_password" id="new_password" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm_password">Confirmer le nouveau mot de passe:</label>
+                        <input type="password" name="confirm_password" id="confirm_password" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Changer le mot de passe</button>
+                </form>
+                <hr>
+                <h2>Lier des applications</h2>
+                <form action="/link_apps" method="post">
+                    <div class="form-group">
+                        <button type="submit" name="app" value="cahier_de_prepa" class="btn btn-primary btn-block d-flex align-items-center" disabled>
+                            <img src="https://cahier-de-prepa.fr/favicon.ico" alt="Cahier de Prépa" class="mr-2" style="width: 20px; height: 20px;">
+                            Lier Cahier de Prépa
+                        </button>
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" name="app" value="pronote" class="btn btn-primary btn-block d-flex align-items-center" disabled>
+                            <img src="https://www.index-education.com/contenu/img/commun/logo-pronote-menu.png" alt="Pronote" class="mr-2" style="width: 20px; height: 20px;">
+                            Lier Pronote
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!-- header.html -->
+<body>
+    <header class="bg-primary text-white text-center py-3">
+        <div class="container">
+            <h1 class="site-title">Prépa Alpha CIV</h1>
+            <div>
+                <a href="{{ url_for('index') }}" class="btn btn-light mt-3">Accueil</a>
+                {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('logout') }}" class="btn btn-danger mt-3">Se déconnecter</a>
+                    <a href="{{ url_for('myprofile') }}" class="btn btn-light mt-3">Mon Profil</a>
+                    {% if current_user.is_admin %}
+                        <a href="{{ url_for('admin') }}" class="btn btn-warning mt-3">Admin</a>
+                    {% endif %}
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="btn btn-light mt-3">Se connecter</a>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+</body>

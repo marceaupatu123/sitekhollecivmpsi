@@ -1,75 +1,129 @@
 <!DOCTYPE html>
 <html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    {% include 'icon.html' %}
+    {% include 'header.html' %}
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Admin - Gestion des Utilisateurs</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/styles.css') }}"
+    />
     <style>
-        .profile-picture {
-            width: 50px;
-            height: 50px;
-            object-fit: cover;
-            border-radius: 50%;
-        }
-        .badge-image {
-            width: 20px;
-            height: 20px;
-            margin-left: 5px;
-        }
+      .profile-picture {
+        width: 50px;
+        height: 50px;
+        object-fit: cover;
+        border-radius: 50%;
+      }
+      .badge-image {
+        width: 20px;
+        height: 20px;
+        margin-left: 5px;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <header class="bg-dark text-white text-center py-3">
-        <h1>Administration - Gestion des Utilisateurs</h1>
+      <h1>Administration - Gestion des Utilisateurs</h1>
     </header>
     <div class="container-fluid my-4">
-        <h2>Liste des Utilisateurs</h2>
-        <div class="table-responsive">
-            <table class="table table-bordered table-striped text-center">
-                <thead class="thead-dark">
-                    <tr>
-                        <th scope="col">ID</th>
-                        <th scope="col">Photo de Profil</th>
-                        <th scope="col">Nom</th>
-                        <th scope="col">Email</th>
-                        <th scope="col">Badges</th>
-                        <th scope="col">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for user in users %}
-                    <tr>
-                        <th scope="row">{{ user.id }}</th>
-                        <td>
-                            {% if user.profile_picture %}
-                                <img src="{{ user.profile_picture }}" class="profile-picture" alt="Photo de Profil">
-                            {% else %}
-                                <img src="{{ url_for('static', filename='images/default-profile.png') }}" class="profile-picture" alt="Photo de Profil">
-                            {% endif %}
-                        </td>
-                        <td>{{ user.first_name }} {{ user.last_name }}</td>
-                        <td>{{ user.email }}</td>
-                        <td>
-                            {% for badge in user.badges %}
-                                <img src="{{ badge.image_url }}" class="badge-image" alt="{{ badge.title }}" title="{{ badge.title }}">
-                            {% endfor %}
-                        </td>
-                        <td>
-                            <a href="{{ url_for('edit_user', user_id=user.id) }}" class="btn btn-warning btn-sm">Modifier</a>
-                            <form action="{{ url_for('delete_user', user_id=user.id) }}" method="POST" style="display:inline;">
-                                <button type="submit" class="btn btn-danger btn-sm">Supprimer</button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+      <!-- Messages Flash -->
+      {% with messages = get_flashed_messages(with_categories=true) %} {% if
+      messages %}
+      <div class="alert-container">
+        {% for category, message in messages %}
+        <div
+          class="alert alert-{{ category }} alert-dismissible fade show"
+          role="alert"
+        >
+          {{ message }}
+          <button
+            type="button"
+            class="close"
+            data-dismiss="alert"
+            aria-label="Close"
+          >
+            <span aria-hidden="true">&times;</span>
+          </button>
         </div>
+        {% endfor %}
+      </div>
+      {% endif %} {% endwith %}
+
+      <h2>Liste des Utilisateurs</h2>
+      <div class="table-responsive">
+        <table class="table table-bordered table-striped text-center">
+          <thead class="thead-dark">
+            <tr>
+              <th scope="col">ID</th>
+              <th scope="col">Photo de Profil</th>
+              <th scope="col">Nom</th>
+              <th scope="col">Email</th>
+              <th scope="col">Badges</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for user in users %}
+            <tr>
+              <th scope="row">{{ user.id }}</th>
+              <td>
+                {% if user.profile_picture %}
+                <img
+                  src="{{ user.profile_picture }}"
+                  class="profile-picture"
+                  alt="Photo de Profil"
+                />
+                {% else %}
+                <img
+                  src="{{ url_for('static', filename='images/default-profile.png') }}"
+                  class="profile-picture"
+                  alt="Photo de Profil"
+                />
+                {% endif %}
+              </td>
+              <td>{{ user.first_name }} {{ user.last_name }}</td>
+              <td>{{ user.email }}</td>
+              <td>
+                {% for badge in user.badges %}
+                <img
+                  src="{{ badge.image_url }}"
+                  class="badge-image"
+                  alt="{{ badge.title }}"
+                  title="{{ badge.title }}"
+                />
+                {% endfor %}
+              </td>
+              <td>
+                <a
+                  href="{{ url_for('edit_user', user_id=user.id) }}"
+                  class="btn btn-warning btn-sm"
+                  >Modifier</a
+                >
+                <form
+                  action="{{ url_for('delete_user', user_id=user.id) }}"
+                  method="POST"
+                  style="display: inline"
+                >
+                  <button type="submit" class="btn btn-danger btn-sm">
+                    Supprimer
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-</body>
+  </body>
 </html>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    {% include 'icon.html' %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vérification Requise</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            background: url('https://source.unsplash.com/1600x900/?security') no-repeat center center fixed;
+            background-size: cover;
+            color: #fff;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .overlay {
+            background: rgba(0, 0, 0, 0.7);
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1;
+        }
+        .content {
+            position: relative;
+            z-index: 2;
+        }
+        .alert {
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+        }
+        .alert a {
+            color: #007bff;
+        }
+        .small-img {
+            max-width: 100%; /* Ajustez cette valeur selon vos besoins */
+            height: auto;
+            max-height: 250px; /* Limite la hauteur de l'image */
+        }
+    </style>
+</head>
+<body>
+    <div class="overlay"></div>
+    <div class="container content d-flex justify-content-center align-items-center">
+        <div class="col-md-8">
+            <div class="alert alert-warning text-center">
+                <h1 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> Vérification Requise</h1>
+                <p>Pour des mesures de sécurité, en tant que khôlleur/professeur, vous devez prouver votre identité avant de pouvoir accéder à toutes les fonctionnalités du site.</p>
+                <img src="https://media1.tenor.com/m/xKv_m5YAP58AAAAC/sturmangriff.gif" alt="Verification Required" class="mb-2 img-fluid small-img">
+                <p class="mb-0">Veuillez envoyer un email à <a href="mailto:marceaupatu123@icloud.com">marceaupatu123@icloud.com</a> avec l'adresse email que vous avez utilisée pour vous inscrire.</p>
+                <p>Merci de votre compréhension.</p>
+            </div>
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://kit.fontawesome.com/a076d05399.js"></script>
+</body>
+</html>
