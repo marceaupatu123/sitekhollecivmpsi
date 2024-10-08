@@ -849,7 +849,7 @@ def upload_image():
 
     # Upload the compressed image
     random_string = uuid.uuid4().hex[:16]
-    blob = bucket.blob(f"{random_string}.png")
+    blob = bucket.blob(f"comment_image-{random_string}.png")
     blob.upload_from_file(output, content_type="image/png")
     blob.make_public()
 
