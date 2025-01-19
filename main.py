@@ -428,11 +428,53 @@ def logout():
 def get_structure():
     structure = {
         "Maths": [
-            "Chapitre 1 : Complément de calcul algébrique et de trigonométrie",
-            "Chapitre 2 : Nombres Complexes",
-            "Chapitre 3 : Raisonnement et Logique",
+            "Chapitre 1 : Logique et raisonnements",
+            "Chapitre 2 : Ensembles et applications",
+            "Chapitre 3 : Calcul algébrique et trigonométrique",
+            "Chapitre 4 : Nombres complexes",
+            "Chapitre 5 : Systèmes linéaires",
+            "Chapitre 6 : Techniques fondamentales pour l'étude des fonctions",
+            "Chapitre 7 : Fonctions usuelles",
+            "Chapitre 8 : Primitives et équations différentielles",
+            "Chapitre 9 : Suites numériques",
+            "Chapitre 10 : Limite et continuité des fonctions",
+            "Chapitre 11 : Dérivabilité",
+            "Chapitre 12 : Arithmétique des entiers",
+            "Chapitre 13 : Structures algébriques usuelles",
+            "Chapitre 14 : Calcul matriciel",
+            "Chapitre 15 : Polynômes et fractions rationnelles",
         ],
-        "Physique": ["Chapitre 1 : Optique"],
+        "Physique": [
+            "Chapitre 1 : Bases de l'optique géométrique",
+            "Chapitre 2 : Lentilles minces",
+            "Chapitre 3 : Lois de l'électrocinétique – Régime continu",
+            "Chapitre 4 : Circuit linéaire du premier ordre",
+            "Chapitre 5 : Oscillateur électrique en régime libre",
+            "Chapitre 6 : Régime sinusoïdal forcé",
+            "Chapitre 7 : Filtrage linéaire",
+            "Chapitre 8 : Propagation d'un signal",
+            "Chapitre 9 : Cinématique du point",
+            "Chapitre 10 : Principes de la dynamique",
+            "Chapitre 11 : Énergie mécanique",
+            "Chapitre 12 : Mouvement dans un champ électrique ou magnétique",
+            "Chapitre 13 : État et évolution d'un système chimique",
+            "Chapitre 14 : Cinétique chimique",
+            "Chapitre 15 : Molécules et ions",
+            "Chapitre 16 : Moment cinétique – Force centrale",
+            "Chapitre 17 : Mouvement d'un solide",
+            "Chapitre 18 : Description d'un système thermodynamique",
+            "Chapitre 19 : Premier principe de la thermodynamique",
+            "Chapitre 20 : Deuxième principe de la thermodynamique",
+            "Chapitre 21 : Machines thermiques",
+            "Chapitre 22 : Champ magnétique",
+            "Chapitre 23 : Induction électromagnétique",
+            "Chapitre 24 : Introduction à la physique quantique",
+            "Chapitre 25 : Solides cristallins",
+            "Chapitre 26 : Réactions acido-basiques",
+            "Chapitre 27 : Réactions de dissolution ou de précipitation",
+            "Chapitre 28 : Réactions d’oxydo-réduction",
+            "Chapitre 29 : Diagrammes potentiel-pH",
+        ],
     }
     return jsonify(structure)
 
@@ -441,8 +483,21 @@ def get_structure():
 @limiter.limit("10 per minute")
 def get_kholleurs():
     kholleurs = {
-        "Maths": ["M. Dupont", "Mme. Durand"],
-        "Physique": ["M. Martin", "Mme. Bernard"],
+        "Maths": [
+            "Luc Albert",
+            "Victor Alfieri",
+            "Jean-Pierre Tecourt",
+            "Sébastien Bis",
+            "Jean-François Pietri",
+            "Marie Peyrelevade",
+            "Virginie Revenu",
+        ],
+        "Physique": [
+            "Jean-Vincent Demarais",
+            "Sylvain Sadoux",
+            "Clément Malaterre",
+            "Frédéric Sudre",
+        ],
     }
     return jsonify(kholleurs)
 
