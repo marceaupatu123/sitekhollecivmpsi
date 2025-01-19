@@ -130,3 +130,5 @@ dmypy.json
 .env
 jsonid.json
 node_modules/
+.scripts/sessionInfo.json
+.scripts/timetable.json
