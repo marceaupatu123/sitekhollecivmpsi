@@ -916,9 +916,11 @@ def upload_image():
     random_string = uuid.uuid4().hex[:16]
     blob = bucket.blob(f"CommentImages/comment_image-{random_string}.png")
     blob.upload_from_file(output, content_type="image/png")
-    blob.make_public()
 
-    return jsonify({"url": blob.public_url}), 200
+    # Get the public URL without using ACLs
+    public_url = f"https://storage.googleapis.com/{BUCKET_NAME}/{blob.name}"
+
+    return jsonify({"url": public_url}), 200
 
 
 @app.route("/delete_image", methods=["DELETE"])
