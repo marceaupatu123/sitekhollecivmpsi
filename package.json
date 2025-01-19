@@ -1,0 +1,20 @@
+{
+  "name": "scripts",
+  "version": "1.0.0",
+  "main": "pronote.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@google-cloud/storage": "^7.13.0",
+    "execSync": "^1.0.2",
+    "ical-generator": "^8.0.1",
+    "pawnote": "^1.2.2",
+    "promisify": "^0.0.3",
+    "uuid": "^11.0.2"
+  }
+}

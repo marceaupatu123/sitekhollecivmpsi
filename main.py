@@ -9,6 +9,7 @@ from flask import (
     session,
     send_from_directory,
 )
+import urllib.parse
 from flask_login import (
     LoginManager,
     UserMixin,
@@ -18,6 +19,11 @@ from flask_login import (
     current_user,
     AnonymousUserMixin,
 )
+import shlex
+import subprocess
+import cv2
+from pyzbar.pyzbar import decode
+from urllib.parse import urlparse
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import os
@@ -36,6 +42,7 @@ from functools import wraps
 import dotenv
 import uuid
 import re
+import numpy as np
 from google.api_core.exceptions import NotFound
 
 dotenv.load_dotenv()
@@ -118,15 +125,37 @@ bucket = storage_client.bucket(BUCKET_NAME)
 executor = ThreadPoolExecutor(max_workers=4)
 
 
+def is_pronote_logged_in():
+    # Rechercher un document avec le même user_id
+    existing_doc = (
+        db.collection("PronoteToken").where("user_id", "==", current_user.id).get()
+    )
+    return bool(existing_doc)
+
+
+def pronote_login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not is_pronote_logged_in():
+            flash("Vous devez vous connecter ou vous reconnecter à Pronote.", "error")
+            return redirect(url_for("myprofile"))  # Redirigez vers la page de profil
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
 def delete_file_online(file_url):
     try:
         # Vérifiez si l'URL est valide
         if not file_url:
             return {"success": False, "message": "No URL provided"}
 
-        # Extraire le nom du blob à partir de l'URL
-        blob_name = file_url.split("/")[-1].rstrip('"')
-        blob = bucket.blob(blob_name)
+        # Extraire le chemin complet du blob à partir de l'URL
+        parsed_url = urlparse(file_url)
+        path_segments = parsed_url.path.lstrip("/").split("/")
+        blob_path = "/".join(path_segments[1:])
+
+        blob = bucket.blob(blob_path)
 
         # Vérifiez si le blob existe
         if not blob.exists():
@@ -254,10 +283,9 @@ def compress_image(file):
     return output
 
 
-def upload_file_online(file, filename):
-    blob = bucket.blob(filename)
+def upload_file_online(file, filename, folder):
+    blob = bucket.blob(f"{folder}/{filename}")
     blob.upload_from_file(file)
-    blob.make_public()
     return blob.public_url
 
 
@@ -282,32 +310,6 @@ def deleteGoogleImages(message: str):
             )
 
 
-@app.cli.command("create_admin")
-def create_admin():
-    from getpass import getpass
-
-    email = input("Email: ")
-    first_name = input("First Name: ")
-    last_name = input("Last Name: ")
-    password = getpass("Password: ")
-    confirm_password = getpass("Confirm Password: ")
-
-    if password != confirm_password:
-        print("Passwords do not match!")
-        return
-
-    hashed_password = generate_password_hash(password, method="pbkdf2:sha256")
-    new_admin = {
-        "email": email,
-        "first_name": first_name,
-        "last_name": last_name,
-        "password": hashed_password,
-        "is_admin": True,
-    }
-    db.collection("users").add(new_admin)
-    print("Admin user created successfully!")
-
-
 class User(UserMixin):
     def __init__(
         self,
@@ -316,6 +318,7 @@ class User(UserMixin):
         first_name,
         last_name,
         password,
+        classe,
         khôlleGroupe,
         is_admin=False,
         kholleur_key="",
@@ -327,6 +330,7 @@ class User(UserMixin):
         self.first_name = first_name
         self.last_name = last_name
         self.password = password
+        self.classe = classe
         self.khôlleGroupe = khôlleGroupe
         self.is_admin = is_admin
         self.kholleur_key = kholleur_key
@@ -355,6 +359,7 @@ def register():
         first_name = request.form.get("first_name")
         last_name = request.form.get("last_name")
         email = request.form.get("email")
+        classe = "MPSI"
         khôllegroupe = request.form.get("khôlle")
         password = request.form.get("password")
         confirm_password = request.form.get("confirm_password")
@@ -372,6 +377,7 @@ def register():
             "first_name": first_name,
             "last_name": last_name,
             "email": email,
+            "classe": classe,
             "password": generate_password_hash(password, method="pbkdf2:sha256"),
             "is_admin": False,
             "profile_picture": "https://risibank.fr/cache/medias/0/9/966/96634/full.jpeg",
@@ -477,7 +483,7 @@ def upload_file():
         compressed_file = future.result()
 
         try:
-            file_url = upload_file_online(compressed_file, filename)
+            file_url = upload_file_online(compressed_file, filename, "SubmissionImages")
         except Exception as e:
             flash(f"File upload failed: {str(e)}")
             return redirect(request.url)
@@ -486,6 +492,7 @@ def upload_file():
             "user_id": current_user.id,
             "subject": subject,
             "chapter": chapter,
+            "classe": "MPSI",
             "difficulty": difficulty,
             "image_url": file_url,
             "kholleur": kholleur,
@@ -527,6 +534,7 @@ def get_submissions():
                 "id": submission.id,
                 "prenom": user_data["first_name"],
                 "difficulte": submission_data["difficulty"],
+                "classe": submission_data["classe"],
                 "image_url": submission_data["image_url"],
                 "subject": submission_data["subject"],
                 "chapter": submission_data["chapter"],
@@ -613,6 +621,7 @@ def get_submission_details(submission_id):
             "id": submission_id,
             "prenom": user_data["first_name"],
             "difficulte": submission_data["difficulty"],
+            "classe": submission_data["classe"],
             "image_url": submission_data["image_url"],
             "subject": submission_data["subject"],
             "chapter": submission_data["chapter"],
@@ -663,7 +672,7 @@ def delete_submission(submission_id):
         if image_url:
             # Extract the object name from the URL
             object_name = image_url.split("/")[-1]
-            blob = bucket.blob(object_name)
+            blob = bucket.blob("SubmissionImages/" + object_name)
             blob.delete()
 
         # Suppression des commentaires associés
@@ -785,7 +794,7 @@ def update_profile():
             buffer.seek(0)
 
             # Upload to Google Cloud Storage
-            file_url = upload_file_online(buffer, filename)
+            file_url = upload_file_online(buffer, filename, "ProfilePictures")
 
             # Supprimer l'ancienne image de profil
             if (
@@ -849,7 +858,7 @@ def upload_image():
 
     # Upload the compressed image
     random_string = uuid.uuid4().hex[:16]
-    blob = bucket.blob(f"comment_image-{random_string}.png")
+    blob = bucket.blob(f"CommentImages/comment_image-{random_string}.png")
     blob.upload_from_file(output, content_type="image/png")
     blob.make_public()
 
@@ -869,6 +878,160 @@ def delete_image():
         return jsonify({"message": result["message"]}), 200
     else:
         return jsonify({"error": result["message"]}), 404
+
+
+@app.route("/calendar")
+@pronote_login_required
+def calendar():
+    blob_name = f"calendriers/{current_user.id}.icas"
+    blob = bucket.blob(blob_name)
+    if not blob.exists():
+        existing_doc = (
+            db.collection("PronoteToken").where("user_id", "==", current_user.id).get()
+        )
+
+        if existing_doc:
+            token = existing_doc[
+                0
+            ].to_dict()  # Assurez-vous de prendre le premier document
+            token_json = json.dumps(token, ensure_ascii=False)  # Convertir en JSON
+            result = subprocess.run(
+                ["node", "./scripts/pronotetime.js", token_json, str(current_user.id)],
+                capture_output=True,
+                text=True,
+            )
+
+            if result.returncode == 0:
+                sessionInfoJson = result.stdout
+                # Remplace les guillemets simples par des guillemets doubles pour les valeurs
+                sessionInfoJson = re.sub(r"(?<=: )'([^']*)'", r'"\1"', sessionInfoJson)
+
+                # Ajoute des guillemets doubles autour des clés
+                sessionInfoJson = re.sub(r"(\w+):", r'"\1":', sessionInfoJson)
+
+                # Supprime les sauts de ligne et les espaces superflus
+                sessionInfoJson = sessionInfoJson.replace("\n", "").strip()
+
+                sessionInfo = json.loads(sessionInfoJson)
+                sessionInfo["user_id"] = current_user.id
+                # Rechercher un document avec le même user_id
+                existing_doc = (
+                    db.collection("PronoteToken")
+                    .where("user_id", "==", current_user.id)
+                    .get()
+                )
+
+                if existing_doc:
+                    # Si un document est trouvé, le mettre à jour
+                    for doc in existing_doc:
+                        db.collection("PronoteToken").document(doc.id).update(
+                            sessionInfo
+                        )
+            if result.returncode != 0:
+                flash(
+                    "Vous devez vous connecter ou vous reconnecter à Pronote.", "error"
+                )
+                return redirect(
+                    url_for("myprofile")
+                )  # Redirigez vers la page de profil
+    return render_template("calendar.html", user_id=current_user.id)
+
+
+@app.route("/pronotelogin")
+@login_required
+def pronotelogin():
+    return render_template(
+        "pronotelogin.html",
+        user=current_user,
+        profile_picture_url=current_user.profile_picture,
+    )
+
+
+@app.route("/pronoteloginok")
+@login_required
+def pronoteloginok():
+    pronote_profile_picture = request.args.get("pronote_profile_picture")
+    if pronote_profile_picture:
+        # Decode the URL multiple times
+        for _ in range(2):  # Adjust the range if needed
+            pronote_profile_picture = urllib.parse.unquote(pronote_profile_picture)
+    return render_template(
+        "pronoteloginok.html",
+        user=current_user,
+        pronote_profile_picture=pronote_profile_picture,
+    )
+
+
+@app.route("/uploadQR", methods=["POST"])
+@login_required
+def upload_QR():
+    if "file" not in request.files or request.files["file"].filename == "":
+        return redirect(url_for("index"))
+
+    file = request.files["file"]
+    try:
+        # Lire l'image directement depuis le fichier téléchargé
+        img = cv2.imdecode(np.frombuffer(file.read(), np.uint8), cv2.IMREAD_COLOR)
+        if img is None:
+            return "Error decoding image", 400
+
+        decoded_objects = decode(img)
+        qr_data = "No QR code found"
+        if decoded_objects:
+            qr_data = decoded_objects[0].data.decode("utf-8")
+
+            # Encoder correctement la chaîne JSON
+            qr_data_json = json.dumps(qr_data)
+
+            # Appeler le script pronote.js avec le contenu du QR code
+            result = subprocess.run(
+                ["node", "./scripts/pronote.js", f"qr={qr_data_json}"],
+                capture_output=True,
+                text=True,
+            )
+
+            if result.returncode == 0:
+                sessionInfoJson = result.stdout
+                # Remplace les guillemets simples par des guillemets doubles pour les valeurs
+                sessionInfoJson = re.sub(r"(?<=: )'([^']*)'", r'"\1"', sessionInfoJson)
+
+                # Ajoute des guillemets doubles autour des clés
+                sessionInfoJson = re.sub(r"(\w+):", r'"\1":', sessionInfoJson)
+
+                # Supprime les sauts de ligne et les espaces superflus
+                sessionInfoJson = sessionInfoJson.replace("\n", "").strip()
+
+                sessionInfo = json.loads(sessionInfoJson)
+                sessionInfo["user_id"] = current_user.id
+                # Rechercher un document avec le même user_id
+                existing_doc = (
+                    db.collection("PronoteToken")
+                    .where("user_id", "==", current_user.id)
+                    .get()
+                )
+
+                if existing_doc:
+                    # Si un document est trouvé, le mettre à jour
+                    for doc in existing_doc:
+                        db.collection("PronoteToken").document(doc.id).update(
+                            sessionInfo
+                        )
+                else:
+                    # Sinon, ajouter un nouveau document
+                    db.collection("PronoteToken").add(sessionInfo)
+                profile_picture = sessionInfo["profile_picture"]
+                return redirect(
+                    url_for(
+                        "pronoteloginok",
+                        pronote_profile_picture=profile_picture,
+                    )
+                )
+            else:
+                return f"Error processing QR Code: {result.stderr}", 500
+
+        return f"QR Code Data: {qr_data}", 200
+    except Exception as e:
+        return f"An error occurred: {str(e)}", 500
 
 
 if __name__ == "__main__":

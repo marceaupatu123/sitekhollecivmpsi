@@ -129,3 +129,4 @@ dmypy.json
 .Fichiers/*
 .env
 jsonid.json
+node_modules/

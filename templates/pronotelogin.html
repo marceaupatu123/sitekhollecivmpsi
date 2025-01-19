@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page d'authentification</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #fcefdc;
+        }
+        .auth-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .info-section, .login-section {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        }
+        .info-section {
+            width: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .login-section {
+            width: 40%;
+        }
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .upload-label {
+            display: block;
+            margin: 10px 0;
+        }
+        .custom-file-input:lang(fr) ~ .custom-file-label::after {
+            content: "Choisir";
+        }
+        /* Style du header */
+        .ObjetBandeauEspace {
+            background-color: #f8f9fa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+        }
+        .ibe_centre {
+            text-align: center;
+            font-weight: bold;
+            font-size: 20px;
+        }
+        .ibe_image_etab img {
+            max-width: 194px;
+        }
+        .ibe_logo a {
+            display: block;
+            width: 80px;
+            height: 40px;
+            background-image: url('https://www.index-education.com/redirect.php?produit=pn&page=LogoPronote&version=2024.3.7.0&distrib=FR&lg=fr&flag=Espace_Eleve');
+            background-size: contain;
+            background-repeat: no-repeat;
+        }
+        .icon-anglicisme {
+            max-width: 100px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <div style="position:absolute; top:0; left:0; right:0; z-index:101;" id="IE.Identite.collection.g1">
+        <div class="ObjetBandeauEspace" role="banner" aria-label="" tabindex="0" style="justify-content: center;">
+            <div class="container">
+                <div class="row">
+                    <div class="col-12 d-flex justify-content-start">
+                        <div class="ibe_image_etab" role="presentation">
+                            <img src="https://0061642c.index-education.net/pronote/fichierurlpublique/logo.png?param=7DA3DEB97ED4E736E373FCE0BB40DB429A554CA28678BDF00BA8A172EBA8DA62FDC5F566138AF2819D846A03BF84F33EB2B70D400E2410566FB11F599CA480690C7D7F00E172F3EF09E7FB18EE4640A7" 
+                                 alt="Logo de l'établissement" 
+                                 onerror="$(this).remove();" 
+                                 style="max-width: 194px; width: 38.7px; height: 45px;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="container d-flex justify-content-center" style="overflow: hidden; max-width: 796px;">
+                <div class="ibe_etab_util">
+                    <div class="AvecMain ibe_etab_cont">
+                        <div class="ibe_etab font-weight-bold display-7">CENTRE INTERNATIONAL DE VALBONNE</div>
+                    </div>
+                </div>
+            </div>
+            <div class="container">
+                <div class="row">
+                    <div class="col-12 d-flex justify-content-end">
+                        <div class="ibe_droite">
+                            <div class="ibe_logo">
+                                <img src="https://0061642c.index-education.net/pronote/FichiersRessource/LogoPronoteBarreHaut.png" 
+                                     alt="Logo de Pronote" 
+                                     onerror="$(this).remove();" 
+                                     style="max-width: 194px; width: 95px; height: 30px;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenu principal -->
+    <div class="container auth-container" style="padding-top: 100px;">
+        <div class="row justify-content-center">
+            <!-- Section d'information -->
+            <div class="info-section p-4 border rounded bg-light w-75 mx-auto mb-4" style="min-height: 300px;">
+                <img src="{{ profile_picture_url }}" class="img-fluid rounded-circle mb-3" alt="Photo de l'utilisateur" style="width: 80px; height: 80px;">
+                <p class="text-muted small mt-2">{{ user.first_name }} {{ user.last_name }}</p>
+                <blockquote class="blockquote">
+                    <p class="mb-0">Veuillez envoyer votre QR Code Pronote avec le code 0000 pour votre première connexion.</p>
+                </blockquote>
+            </div>
+    
+            <!-- Section de connexion -->
+            <div class="login-section p-4 border rounded bg-light w-75 mx-auto" style="min-height: 300px;">
+                <h3 class="title text-center">Authentification Pronote sur Prépa Alpha</h3>
+                <form action="/uploadQR" method="post" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label class="upload-label" for="qrCode">QR Code d'authentification</label>
+                        <div class="custom-file">
+                            <input type="file" class="custom-file-input" id="qrCode" name="file" accept="image/*" required>
+                            <label class="custom-file-label" for="qrCode">Choisissez votre QR Code</label>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block mt-3">Se connecter</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    
+        
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        // Script pour afficher le nom du fichier sélectionné
+        $('.custom-file-input').on('change', function() {
+            let fileName = $(this).val().split('\\').pop();
+            $(this).next('.custom-file-label').addClass("selected").html(fileName);
+        });
+    </script>
+    <script>
+        document.querySelector('.custom-file-input').addEventListener('change', function(e) {
+            var fileName = document.getElementById("qrCode").files[0].name;
+            var nextSibling = e.target.nextElementSibling;
+            nextSibling.innerText = fileName;
+        });
+    </script>
+</body>
+</html>

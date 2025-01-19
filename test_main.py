@@ -24,6 +24,7 @@ def client():
                     "password": generate_password_hash(
                         "password", method="pbkdf2:sha256"
                     ),
+                    "classe": "MPSI",
                     "khôlleGroupe": 13,
                     "is_admin": False,
                     "kholleur_key": "",

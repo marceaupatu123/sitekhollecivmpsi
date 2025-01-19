@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    {% include 'icon.html' %} {% include 'header.html' %}
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Calendrier - Prépa Alpha CIV</title>
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/styles.css') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.2/fullcalendar.min.css"
+    />
+  </head>
+  <body>
+    <div class="container mt-4">
+      <h1>Calendrier</h1>
+      <p>Voici votre emploi du temps.</p>
+      <div id="calendar"></div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ical.js/1.4.0/ical.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid@6.1.15/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/locales/fr.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        var calendarEl = document.getElementById("calendar");
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+          initialView: "timeGridWeek",
+          locale: "fr",
+          headerToolbar: {
+            left: "prev,next",
+            center: "title",
+            right: "timeGridWeek,timeGridDay",
+          },
+          defaultDate: new Date(),
+          slotMinTime: "08:00:00",
+          slotMaxTime: "19:00:00",
+          events: function(fetchInfo, successCallback, failureCallback) {
+            $.ajax({
+              url: "https://sacred-ember-377216.appspot.com.storage.googleapis.com/Calendriers/{{ user_id }}.ics",
+              dataType: 'text',
+              success: function(data) {
+                try {
+                  var jcalData = ICAL.parse(data);
+                  var comp = new ICAL.Component(jcalData);
+                  var vevents = comp.getAllSubcomponents('vevent');
+                  var events = vevents.map(function(vevent) {
+                    var event = new ICAL.Event(vevent);
+                    var startDate = event.startDate.toJSDate();
+                    var endDate = event.endDate.toJSDate();
+                    var colorProp = vevent.getFirstPropertyValue("X-COLOR");
+                    return {
+                      title: event.summary,
+                      start: startDate.toISOString(),
+                      end: endDate.toISOString(),
+                      color: colorProp || '#378006',
+                      extendedProps: {
+                        location: event.location,
+                      }
+                    };
+                  });
+                  console.log("Events loaded:", events);
+                  successCallback(events);
+                } catch (error) {
+                  console.error("Error parsing ICS data:", error);
+                  failureCallback();
+                }
+              },
+              error: function() {
+                console.error("Failed to load ICS file.");
+                failureCallback();
+              }
+            });
+          },
+        });
+        calendar.render();
+      });
+    </script>
+  </body>
+</html>

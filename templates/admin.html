@@ -34,27 +34,8 @@
     </header>
     <div class="container-fluid my-4">
       <!-- Messages Flash -->
-      {% with messages = get_flashed_messages(with_categories=true) %} {% if
-      messages %}
-      <div class="alert-container">
-        {% for category, message in messages %}
-        <div
-          class="alert alert-{{ category }} alert-dismissible fade show"
-          role="alert"
-        >
-          {{ message }}
-          <button
-            type="button"
-            class="close"
-            data-dismiss="alert"
-            aria-label="Close"
-          >
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-        {% endfor %}
-      </div>
-      {% endif %} {% endwith %}
+      {% include 'flash_messages.html' %}
+    </div>
 
       <h2>Liste des Utilisateurs</h2>
       <div class="table-responsive">
