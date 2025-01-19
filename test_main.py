@@ -83,6 +83,8 @@ def test_logout(client):
     assert response.status_code == 200
     assert "Vous avez été déconnecté.".encode("utf-8") in response.data
 
+    load_dotenv()
+
 
 def test_get_structure(client):
     response = client.get(url_for("get_structure"))
