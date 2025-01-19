@@ -22,7 +22,8 @@ from flask_login import (
 import shlex
 import subprocess
 import cv2
-from pyzbar.pyzbar import decode
+
+## from pyzbar.pyzbar import decode   --- Impossible sur app engine
 from urllib.parse import urlparse
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -1030,7 +1031,7 @@ def upload_QR():
         if img is None:
             return "Error decoding image", 400
 
-        decoded_objects = decode(img)
+        decoded_objects = 0  ##decode(img)
         qr_data = "No QR code found"
         if decoded_objects:
             qr_data = decoded_objects[0].data.decode("utf-8")
