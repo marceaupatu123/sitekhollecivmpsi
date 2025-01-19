@@ -94,8 +94,8 @@ def test_get_structure(client):
 def test_get_kholleurs(client):
     response = client.get(url_for("get_kholleurs"))
     assert response.status_code == 200
-    assert b"M. Dupont" in response.data
-    assert b"Mme. Durand" in response.data
+    assert b"Luc Albert" in response.data
+    assert b"Victor Alfieri" in response.data
 
 
 def test_get_submissions(client):
