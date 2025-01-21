@@ -1,3 +1,55 @@
+"""
+This module implements a Flask web application with various functionalities including user authentication, 
+file uploads, and interactions with Google Cloud Storage and Firestore.
+Modules and Libraries:
+- Flask: Web framework for creating the application.
+- Flask-Login: User session management.
+- Google Cloud Storage: For storing uploaded files.
+- Firestore: Database for storing user and application data.
+- PIL: For image processing.
+- OpenCV: For image decoding.
+- Firebase Admin: For initializing Firebase app.
+- Flask-Limiter: For rate limiting API requests.
+- dotenv: For loading environment variables from a .env file.
+Routes:
+- /unverified: Renders the unverified user page.
+- /register: Handles user registration.
+- /login: Handles user login.
+- /logout: Logs out the current user.
+- /get_structure: Returns the structure of subjects and chapters.
+- /get_kholleurs: Returns the list of kholleurs.
+- /upload: Handles file uploads.
+- /get_submissions: Returns the list of submissions.
+- /: Renders the index page.
+- /admin: Renders the admin page.
+- /admin/edit_user/<user_id>: Handles editing a user by admin.
+- /admin/delete_user/<user_id>: Handles deleting a user by admin.
+- /submission/<submission_id>: Returns the details of a submission.
+- /delete_submission/<submission_id>: Deletes a submission.
+- /post_comment: Handles posting a comment.
+- /delete_comment/<comment_id>: Deletes a comment.
+- /myprofile: Renders the user's profile page.
+- /update_profile: Handles updating the user's profile.
+- /update_password: Handles updating the user's password.
+- /upload_image_summernote: Handles image uploads for Summernote editor.
+- /delete_image: Deletes an image.
+- /calendar: Renders the user's calendar.
+- /pronotelogin: Renders the Pronote login page.
+- /pronoteloginok: Renders the Pronote login success page.
+- /uploadQR: Handles QR code uploads for Pronote login.
+Functions:
+- is_pronote_logged_in: Checks if the user is logged into Pronote.
+- pronote_login_required: Decorator to ensure Pronote login.
+- delete_file_online: Deletes a file from Google Cloud Storage.
+- get_badge_info: Retrieves badge information from Firestore.
+- get_comments: Retrieves comments for a submission.
+- allowed_file: Checks if a file is allowed based on its extension.
+- compress_image: Compresses an image file.
+- upload_file_online: Uploads a file to Google Cloud Storage.
+- deleteGoogleImages: Deletes images from Google Cloud Storage based on URLs in a message.
+- load_user: Loads a user from Firestore.
+"""
+
 from flask import (
     Flask,
     jsonify,
@@ -123,7 +175,7 @@ BUCKET_NAME = "sacred-ember-377216.appspot.com"
 bucket = storage_client.bucket(BUCKET_NAME)
 
 # Thread pool for async tasks
-executor = ThreadPoolExecutor(max_workers=4)
+executor = ThreadPoolExecutor(max_workers=8)
 
 
 def is_pronote_logged_in():
@@ -269,27 +321,30 @@ def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-def compress_image(file):
-    from PIL import Image
-    from io import BytesIO
+def compress_image(file, max_size=(800, 800), quality=55):
+    """Optimized image compression"""
+    try:
+        image = Image.open(file)
+        if image.mode == "RGBA":
+            image = image.convert("RGB")
 
-    image = Image.open(file)
+        # Resize image if larger than max_size
+        if image.size[0] > max_size[0] or image.size[1] > max_size[1]:
+            image.thumbnail(max_size, Image.LANCZOS)
 
-    if image.mode == "RGBA":
-        image = image.convert("RGB")
-
-    max_size = (1024, 1024)
-    image.thumbnail(max_size, Image.LANCZOS)
-
-    output = BytesIO()
-    image.save(output, format="WEBP", quality=55)
-    output.seek(0)
-    return output
+        output = io.BytesIO()
+        image.save(output, format="JPEG", optimize=True, quality=quality)
+        output.seek(0)
+        return output
+    except Exception as e:
+        print(f"Error compressing image: {e}")
+        return None
 
 
 def upload_file_online(file, filename, folder):
+    """Optimized file upload with streaming"""
     blob = bucket.blob(f"{folder}/{filename}")
-    blob.upload_from_file(file)
+    blob.upload_from_file(file, content_type="image/jpeg", num_retries=3)
     return blob.public_url
 
 
@@ -515,38 +570,39 @@ def upload_file():
         return redirect(request.url)
 
     file = request.files["file"]
-    if file.filename == "":
-        flash("No selected file")
+    if file.filename == "" or not allowed_file(file.filename):
+        flash("Invalid file")
         return redirect(request.url)
 
-    if file and allowed_file(file.filename):
-        subject = request.form.get("subject")
-        chapter = request.form.get("chapter")
-        kholleur = request.form.get("kholleur")
-        difficulty = request.form.get("difficulty")
+    subject = request.form.get("subject")
+    chapter = request.form.get("chapter")
+    kholleur = request.form.get("kholleur")
+    difficulty = request.form.get("difficulty")
 
-        if not (subject and chapter and kholleur and difficulty):
-            flash("All fields are required")
-            return redirect(request.url)
+    if not all([subject, chapter, kholleur, difficulty]):
+        flash("All fields are required")
+        return redirect(request.url)
 
-        # Générer un nom de fichier unique
+    try:
+        # Générer nom de fichier unique
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
         extension = file.filename.rsplit(".", 1)[1].lower()
-
         filename = secure_filename(
             f"{subject}_{chapter}_{kholleur}_{difficulty}_{timestamp}.{extension}"
         )
 
-        # Compress the image asynchronously
-        future = executor.submit(compress_image, file)
-        compressed_file = future.result()
+        # Compression et upload asynchrones
+        future_compress = executor.submit(compress_image, file)
+        compressed_file = future_compress.result(timeout=10)
+        if not compressed_file:
+            raise Exception("Image compression failed")
 
-        try:
-            file_url = upload_file_online(compressed_file, filename, "SubmissionImages")
-        except Exception as e:
-            flash(f"File upload failed: {str(e)}")
-            return redirect(request.url)
+        future_upload = executor.submit(
+            upload_file_online, compressed_file, filename, "SubmissionImages"
+        )
+        file_url = future_upload.result(timeout=10)
 
+        # Sauvegarde dans Firestore
         new_submission = {
             "user_id": current_user.id,
             "subject": subject,
@@ -557,17 +613,17 @@ def upload_file():
             "kholleur": kholleur,
             "timestamp": datetime.utcnow(),
         }
-        try:
-            db.collection("submissions").add(new_submission)
-        except Exception as e:
-            flash(f"Database save failed: {str(e)}")
-            return redirect(url_for("index"))
 
+        db.collection("submissions").add(new_submission)
         flash("Fichier envoyé avec succès!", "success")
         return redirect(url_for("index"))
 
-    flash("File type not allowed")
-    return redirect(url_for("index"))
+    except TimeoutError:
+        flash("Le traitement a pris trop de temps", "error")
+        return redirect(url_for("index"))
+    except Exception as e:
+        flash(f"Une erreur s'est produite: {str(e)}", "error")
+        return redirect(url_for("index"))
 
 
 @app.route("/get_submissions")
@@ -805,7 +861,7 @@ def delete_comment(comment_id):
     try:
         comment_ref = db.collection("comments").document(comment_id)
         comment = comment_ref.get()
-        if not comment.exists:
+        if not comment.exists():
             flash("Commentaire introuvable", "error")
             return jsonify({"success": False, "message": "Commentaire non trouvé"}), 404
 
