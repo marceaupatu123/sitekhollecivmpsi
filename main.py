@@ -50,6 +50,7 @@ Functions:
 - load_user: Loads a user from Firestore.
 """
 
+# Regrouper les imports par catégorie
 from flask import (
     Flask,
     jsonify,
@@ -59,9 +60,8 @@ from flask import (
     url_for,
     flash,
     session,
-    send_from_directory,
+    make_response,
 )
-import urllib.parse
 from flask_login import (
     LoginManager,
     UserMixin,
@@ -71,6 +71,9 @@ from flask_login import (
     current_user,
     AnonymousUserMixin,
 )
+from google.cloud import storage
+from firebase_admin import credentials, firestore
+import urllib.parse
 import shlex
 import subprocess
 import cv2
@@ -81,9 +84,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import os
 from datetime import datetime
-from google.cloud import storage
 import firebase_admin
-from firebase_admin import credentials, firestore
 import json
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -158,7 +159,6 @@ db = firestore.client()
 
 # Configuration
 UPLOAD_FOLDER = "./Fichiers/"
-ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16 MB max file size
 
@@ -176,6 +176,13 @@ bucket = storage_client.bucket(BUCKET_NAME)
 
 # Thread pool for async tasks
 executor = ThreadPoolExecutor(max_workers=8)
+
+# Définir des constantes
+ALLOWED_EXTENSIONS = frozenset(["png", "jpg", "jpeg", "gif"])
+MAX_IMAGE_SIZE = (800, 800)
+IMAGE_QUALITY = 55
+PROFILE_DEFAULT_IMAGE = "https://risibank.fr/cache/medias/0/9/966/96634/full.jpeg"
+DELETED_USER_IMAGE = "https://risibank.fr/cache/medias/0/26/2682/268287/full.png"
 
 
 def is_pronote_logged_in():
@@ -224,15 +231,15 @@ def delete_file_online(file_url):
         return {"success": False, "message": f"An error occurred: {str(e)}"}
 
 
-@lru_cache(maxsize=128)
+# Ajouter du caching pour les badges
+@lru_cache(maxsize=256)
 def get_badge_info(badge_ids: tuple):
-
     badges = []
-    for badge_id in badge_ids:
-        badge_ref = db.collection("badges").document(str(badge_id)).get()
-        if badge_ref.exists:
-            badges.append(badge_ref.to_dict())
-    return badges
+    badge_refs = [
+        db.collection("badges").document(str(badge_id)) for badge_id in badge_ids
+    ]
+    badge_snapshots = db.get_all(badge_refs)
+    return [snapshot.to_dict() for snapshot in badge_snapshots if snapshot.exists]
 
 
 def get_comments(submission_id):
@@ -264,7 +271,7 @@ def get_comments(submission_id):
     users = {}
     for user_id in user_ids:
         user_doc = db.collection("users").document(user_id).get()
-        if user_doc.exists():
+        if user_doc.exists:  # Changed from exists() to exists
             users[user_id] = user_doc.to_dict()
 
     # Log the fetched users for debugging
@@ -321,7 +328,8 @@ def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-def compress_image(file, max_size=(800, 800), quality=55):
+# Optimiser le traitement des images
+def compress_image(file, max_size=MAX_IMAGE_SIZE, quality=IMAGE_QUALITY):
     """Optimized image compression with EXIF orientation correction"""
     try:
         image = Image.open(file)
@@ -414,7 +422,7 @@ class User(UserMixin):
 @login_manager.user_loader
 def load_user(user_id):
     user_ref = db.collection("users").document(user_id).get()
-    if user_ref.exists():
+    if user_ref.exists:  # Change from exists() to exists
         user_data = user_ref.to_dict()
         return User(id=user_id, **user_data)
     return None
@@ -581,12 +589,16 @@ def get_kholleurs():
 def upload_file():
     if "file" not in request.files:
         flash("No file part")
-        return redirect(request.url)
+        return make_response("No file part", 400)
 
     file = request.files["file"]
-    if file.filename == "" or not allowed_file(file.filename):
+    if file.filename == "":
+        flash("No file selected")
+        return make_response("No file selected", 400)
+
+    if not allowed_file(file.filename):
         flash("Invalid file")
-        return redirect(request.url)
+        return make_response("Invalid file", 400)
 
     subject = request.form.get("subject")
     chapter = request.form.get("chapter")
@@ -594,8 +606,7 @@ def upload_file():
     difficulty = request.form.get("difficulty")
 
     if not all([subject, chapter, kholleur, difficulty]):
-        flash("All fields are required")
-        return redirect(request.url)
+        return make_response("All fields are required", 400)
 
     try:
         # Générer nom de fichier unique
@@ -633,11 +644,11 @@ def upload_file():
         return redirect(url_for("index"))
 
     except TimeoutError:
-        flash("Le traitement a pris trop de temps", "error")
-        return redirect(url_for("index"))
+        flash("Timeout error")
+        return make_response("Timeout error", 500)
     except Exception as e:
-        flash(f"Une erreur s'est produite: {str(e)}", "error")
-        return redirect(url_for("index"))
+        flash(f"An error occurred: {str(e)}")
+        return make_response(str(e), 500)
 
 
 @app.route("/get_submissions")
@@ -656,19 +667,34 @@ def get_submissions():
     result = []
     for submission in submissions:
         submission_data = submission.to_dict()
-        user_ref = db.collection("users").document(submission_data["user_id"]).get()
-        user_data = user_ref.to_dict()
+        user_ref = (
+            db.collection("users").document(submission_data.get("user_id", "")).get()
+        )
+
+        # Handle case where user no longer exists
+        if not user_ref.exists or not user_ref.to_dict():
+            user_data = {
+                "first_name": "[Utilisateur Supprimé]",
+                "last_name": "",
+                "profile_picture": DELETED_USER_IMAGE,
+            }
+        else:
+            user_data = user_ref.to_dict()
+
+        # Add submission with default values for missing fields
         result.append(
             {
                 "id": submission.id,
-                "prenom": user_data["first_name"],
-                "difficulte": submission_data["difficulty"],
-                "classe": submission_data["classe"],
-                "image_url": submission_data["image_url"],
-                "subject": submission_data["subject"],
-                "chapter": submission_data["chapter"],
-                "kholleur": submission_data["kholleur"],
-                "date": submission_data["timestamp"].strftime("%Y-%m-%d"),
+                "prenom": user_data.get("first_name", "[Utilisateur Supprimé]"),
+                "difficulte": submission_data.get("difficulty", 0),
+                "classe": submission_data.get("classe", "MPSI"),  # Default to MPSI
+                "image_url": submission_data.get("image_url", ""),
+                "subject": submission_data.get("subject", ""),
+                "chapter": submission_data.get("chapter", ""),
+                "kholleur": submission_data.get("kholleur", ""),
+                "date": submission_data.get("timestamp", datetime.now()).strftime(
+                    "%Y-%m-%d"
+                ),
             }
         )
 
@@ -740,33 +766,52 @@ def get_submission_details(submission_id):
     try:
         submission_ref = db.collection("submissions").document(submission_id).get()
         if not submission_ref.exists:
-            return jsonify({"error": "Submission not found"}), 404
+            flash("La soumission n'existe pas", "error")
+            return redirect(url_for("index"))
 
         submission_data = submission_ref.to_dict()
-        user_ref = db.collection("users").document(submission_data["user_id"]).get()
-        user_data = user_ref.to_dict()
+        user_ref = (
+            db.collection("users").document(submission_data.get("user_id", "")).get()
+        )
+
+        # Handle case where user no longer exists
+        if not user_ref.exists or not user_ref.to_dict():
+            user_data = {
+                "first_name": "[Utilisateur Supprimé]",
+                "last_name": "",
+                "profile_picture": DELETED_USER_IMAGE,
+                "id": "0",
+            }
+        else:
+            user_data = user_ref.to_dict()
+            user_data["id"] = user_ref.id
 
         result = {
             "id": submission_id,
             "prenom": user_data["first_name"],
-            "difficulte": submission_data["difficulty"],
-            "classe": submission_data["classe"],
-            "image_url": submission_data["image_url"],
-            "subject": submission_data["subject"],
-            "chapter": submission_data["chapter"],
-            "kholleur": submission_data["kholleur"],
-            "date": submission_data["timestamp"].strftime("%Y-%m-%d"),
-            "user_id": submission_data["user_id"],
+            "difficulte": submission_data.get("difficulty", 0),
+            "classe": submission_data.get("classe", "MPSI"),
+            "image_url": submission_data.get("image_url", ""),
+            "subject": submission_data.get("subject", ""),
+            "chapter": submission_data.get("chapter", ""),
+            "kholleur": submission_data.get("kholleur", ""),
+            "date": submission_data.get("timestamp", datetime.now()).strftime(
+                "%Y-%m-%d"
+            ),
+            "user_id": user_data["id"],
         }
 
-        is_admin = False
-        is_owner = False
+        is_admin = (
+            current_user.is_admin
+            if not isinstance(current_user, AnonymousUserMixin)
+            else False
+        )
+        is_owner = (
+            current_user.id == submission_data.get("user_id", "")
+            if not isinstance(current_user, AnonymousUserMixin)
+            else False
+        )
 
-        if not isinstance(current_user, AnonymousUserMixin):
-            is_admin = current_user.is_admin
-            is_owner = current_user.id == submission_data["user_id"]
-
-        # Récupération des commentaires
         comments = get_comments(submission_id)
 
         return render_template(
@@ -777,120 +822,163 @@ def get_submission_details(submission_id):
             is_owner=is_owner,
         )
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        flash(f"Une erreur s'est produite: {str(e)}", "error")
+        return redirect(url_for("index"))
 
 
-@app.route("/delete_submission/<submission_id>", methods=["DELETE"])
+# Optimiser les requêtes Firestore avec des batch
+def delete_submission_and_comments(submission_id):
+    batch = db.batch()
+    submission_ref = db.collection("submissions").document(submission_id)
+    submission = submission_ref.get()
+    if not submission.exists:  # Changed from exists() to exists
+        raise ValueError("Submission not found")
+
+    # Delete comments in batch
+    comments = (
+        db.collection("comments").where("submission_id", "==", submission_id).stream()
+    )
+    for comment in comments:
+        comment_data = comment.to_dict()
+        if "message" in comment_data:
+            deleteGoogleImages(comment_data["message"])
+        batch.delete(comment.reference)
+
+    # Delete submission
+    submission_data = submission.to_dict()
+    if "image_url" in submission_data:
+        delete_file_online(submission_data["image_url"])
+    batch.delete(submission_ref)
+
+    # Commit batch
+    batch.commit()
+
+
+# Améliorer la gestion des erreurs avec un décorateur
+def handle_exceptions(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            flash(str(e), "error")
+            return redirect(url_for("index"))
+
+    return wrapper
+
+
+# Utiliser le décorateur pour les routes critiques
+@app.route("/delete_submission/<submission_id>", methods=["POST"])
+@login_required
 def delete_submission(submission_id):
     try:
-        submission_ref = db.collection("submissions").document(submission_id)
-        submission = submission_ref.get()
-        if not submission.exists():
-            flash("Submission not found", "error")
-            return jsonify({"status": "error", "message": "Submission not found"}), 404
+        # Vérifier si la soumission existe
+        submission = db.collection("submissions").document(submission_id).get()
+        if not submission.exists:
+            flash("La soumission n'existe pas", "error")
+            return redirect(url_for("index"))
 
+        # Vérifier les permissions
         submission_data = submission.to_dict()
-        user_id = submission_data["user_id"]
+        if current_user.id != submission_data["user_id"] and not current_user.is_admin:
+            flash("Vous n'êtes pas autorisé à supprimer cette soumission", "error")
+            return redirect(url_for("index"))
 
-        if current_user.id != user_id and not current_user.is_admin:
-            flash("Unauthorized", "error")
-            return jsonify({"status": "error", "message": "Unauthorized"}), 403
+        # Supprimer l'image de la soumission
+        if "image_url" in submission_data:
+            delete_file_online(submission_data["image_url"])
 
-        # Suppression de l'image associée
-        image_url = submission_data.get("image_url")
-        if image_url:
-            # Extract the object name from the URL
-            object_name = image_url.split("/")[-1]
-            blob = bucket.blob("SubmissionImages/" + object_name)
-            blob.delete()
-
-        # Suppression des commentaires associés
-        comments_ref = (
+        # Supprimer les commentaires associés
+        comments = (
             db.collection("comments")
             .where("submission_id", "==", submission_id)
             .stream()
         )
-        for comment in comments_ref:
-            comment_dict = comment.to_dict()
-            if "message" in comment_dict:
-                deleteGoogleImages(comment_dict["message"])
+        for comment in comments:
+            comment_data = comment.to_dict()
+            if "message" in comment_data:
+                deleteGoogleImages(comment_data["message"])
             comment.reference.delete()
 
-        # Suppression de la soumission
-        submission_ref.delete()
-        flash("Enoncé de Khôlle supprimé avec succès!", "success")
-        return jsonify(
-            {"status": "success", "message": "Submission deleted successfully!"}
-        )
+        # Supprimer la soumission
+        submission.reference.delete()
+
+        flash("Soumission supprimée avec succès", "success")
+        return redirect(
+            url_for("index")
+        )  # Redirection vers l'index au lieu de la page de soumission
+
     except Exception as e:
-        flash(f"An error occurred: {str(e)}", "error")
-        return (
-            jsonify({"status": "error", "message": f"An error occurred: {str(e)}"}),
-            500,
-        )
+        flash(f"Une erreur s'est produite: {str(e)}", "error")
+        return redirect(url_for("index"))
 
 
 @app.route("/post_comment", methods=["POST"])
 @login_required
 def post_comment():
-    data = request.json
-    new_comment = {
-        "user_id": current_user.id,
-        "submission_id": data["submission_id"],
-        "message": data["message"],
-        "timestamp": datetime.utcnow(),
-    }
-
-    # Ajouter le nouveau commentaire à la collection 'comments'
-    db.collection("comments").add(new_comment)
-
-    # Récupérer les données de l'utilisateur
-    user_ref = db.collection("users").document(current_user.id).get()
-
-    if not user_ref.exists:
-        return jsonify({"error": "User not found"}), 404
-
-    user_data = user_ref.to_dict()
-
-    flash("Commentaire ajouté avec succès!", "success")
-
-    return jsonify(
-        {
-            "success": True,
-            "comment": {
-                "user": {
-                    "name": user_data["first_name"],
-                    "profile_picture": user_data.get("profile_picture"),
-                    "badges": user_data.get("badges", []),
-                },
-                "message": data["message"],
-                "timestamp": new_comment["timestamp"].strftime("%Y-%m-%d %H:%M:%S"),
-            },
+    try:
+        data = request.json
+        new_comment = {
+            "user_id": current_user.id,
+            "submission_id": data["submission_id"],
+            "message": data["message"],
+            "timestamp": datetime.utcnow(),
         }
-    )
+
+        # Ajouter le nouveau commentaire à la collection 'comments'
+        db.collection("comments").add(new_comment)
+
+        # Récupérer les données de l'utilisateur
+        user_ref = db.collection("users").document(current_user.id).get()
+        if not user_ref.exists:  # Changed from exists() to exists
+            return jsonify({"error": "User not found"}), 404
+
+        user_data = user_ref.to_dict()
+
+        flash("Commentaire ajouté avec succès!", "success")
+
+        return jsonify(
+            {
+                "success": True,
+                "comment": {
+                    "user": {
+                        "name": user_data["first_name"],
+                        "profile_picture": user_data.get("profile_picture"),
+                        "badges": user_data.get("badges", []),
+                    },
+                    "message": data["message"],
+                    "timestamp": new_comment["timestamp"].strftime("%Y-%m-%d %H:%M:%S"),
+                },
+            }
+        )
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
-@app.route("/delete_comment/<comment_id>", methods=["DELETE"])
+@app.route(
+    "/delete_comment/<comment_id>", methods=["POST"]
+)  # Change from DELETE to POST
 def delete_comment(comment_id):
     try:
         comment_ref = db.collection("comments").document(comment_id)
         comment = comment_ref.get()
-        if not comment.exists():
+        if not comment.exists:
             flash("Commentaire introuvable", "error")
-            return jsonify({"success": False, "message": "Commentaire non trouvé"}), 404
+            return redirect(url_for("index"))
 
         comment_data = comment.to_dict()
         if current_user.is_admin or current_user.id == comment_data["user_id"]:
             if "message" in comment_data:
                 deleteGoogleImages(comment_data["message"])
             comment_ref.delete()
-            return jsonify({"success": True}), 200
+            flash("Commentaire supprimé avec succès", "success")
+            return redirect(url_for("index"))
         else:
             flash("Non autorisé", "error")
-            return jsonify({"success": False, "message": "Non autorisé"}), 403
+            return redirect(url_for("index"))
     except Exception as e:
         flash(f"Une erreur s'est produite: {str(e)}", "error")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return redirect(url_for("index"))
 
 
 @app.route("/myprofile", methods=["GET"])
@@ -998,17 +1086,18 @@ def upload_image():
 
 @app.route("/delete_image", methods=["DELETE"])
 def delete_image():
-    data = request.get_json()
-    if "url" not in data:
-        return jsonify({"error": "No URL provided"}), 400
+    """This endpoint stays as JSON API since it's used by Summernote editor"""
+    try:
+        data = request.get_json()
+        if not data or "url" not in data:
+            return jsonify({"error": "No URL provided"}), 400
 
-    image_url = data["url"]
-    result = delete_file_online(image_url)
+        image_url = data["url"]
+        result = delete_file_online(image_url)
 
-    if result["success"]:
-        return jsonify({"message": result["message"]}), 200
-    else:
-        return jsonify({"error": result["message"]}), 404
+        return jsonify(result), 200 if result["success"] else 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/calendar")
@@ -1016,7 +1105,7 @@ def delete_image():
 def calendar():
     blob_name = f"calendriers/{current_user.id}.icas"
     blob = bucket.blob(blob_name)
-    if not blob.exists():
+    if not blob.exists:  # Changed from exists() to exists
         existing_doc = (
             db.collection("PronoteToken").where("user_id", "==", current_user.id).get()
         )

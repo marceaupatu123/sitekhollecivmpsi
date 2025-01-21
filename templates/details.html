@@ -397,6 +397,16 @@
                         }
                     });
             }
+
+            function deleteSubmission(submissionId) {
+                if (confirm("Êtes-vous sûr de vouloir supprimer cette soumission ?")) {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = `/delete_submission/${submissionId}`;
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            }
     </script>
   </body>
 </html>
