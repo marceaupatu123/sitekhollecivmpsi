@@ -264,7 +264,7 @@ def get_comments(submission_id):
     users = {}
     for user_id in user_ids:
         user_doc = db.collection("users").document(user_id).get()
-        if user_doc.exists:
+        if user_doc.exists():
             users[user_id] = user_doc.to_dict()
 
     # Log the fetched users for debugging
@@ -322,9 +322,23 @@ def allowed_file(filename):
 
 
 def compress_image(file, max_size=(800, 800), quality=55):
-    """Optimized image compression"""
+    """Optimized image compression with EXIF orientation correction"""
     try:
         image = Image.open(file)
+
+        # Correction de l'orientation EXIF
+        try:
+            exif = image._getexif()
+            if exif:
+                orientation = exif.get(274)  # 274 est le tag EXIF pour l'orientation
+                if orientation:
+                    rotate_values = {3: 180, 6: 270, 8: 90}
+                    if orientation in rotate_values:
+                        image = image.rotate(rotate_values[orientation], expand=True)
+        except (AttributeError, KeyError, IndexError):
+            # Ignore les erreurs si l'image n'a pas de données EXIF
+            pass
+
         if image.mode == "RGBA":
             image = image.convert("RGB")
 
@@ -400,7 +414,7 @@ class User(UserMixin):
 @login_manager.user_loader
 def load_user(user_id):
     user_ref = db.collection("users").document(user_id).get()
-    if user_ref.exists:
+    if user_ref.exists():
         user_data = user_ref.to_dict()
         return User(id=user_id, **user_data)
     return None
@@ -771,7 +785,7 @@ def delete_submission(submission_id):
     try:
         submission_ref = db.collection("submissions").document(submission_id)
         submission = submission_ref.get()
-        if not submission.exists:
+        if not submission.exists():
             flash("Submission not found", "error")
             return jsonify({"status": "error", "message": "Submission not found"}), 404
 
