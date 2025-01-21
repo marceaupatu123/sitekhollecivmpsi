@@ -366,8 +366,8 @@ def compress_image(file, max_size=MAX_IMAGE_SIZE, quality=IMAGE_QUALITY):
 def upload_file_online(file, filename, folder):
     """Optimized file upload with streaming"""
     blob = bucket.blob(f"{folder}/{filename}")
-    blob.upload_from_file(file, content_type="image/jpeg", num_retries=3)
-    return blob.public_url
+    blob.upload_from_file(file, content_type="image/jpeg")
+    return f"https://storage.googleapis.com/{BUCKET_NAME}/{folder}/{filename}"
 
 
 def deleteGoogleImages(message: str):
@@ -609,25 +609,40 @@ def upload_file():
         return make_response("All fields are required", 400)
 
     try:
-        # Générer nom de fichier unique
+        # Generate unique filename
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
         extension = file.filename.rsplit(".", 1)[1].lower()
         filename = secure_filename(
             f"{subject}_{chapter}_{kholleur}_{difficulty}_{timestamp}.{extension}"
         )
 
-        # Compression et upload asynchrones
-        future_compress = executor.submit(compress_image, file)
-        compressed_file = future_compress.result(timeout=10)
-        if not compressed_file:
-            raise Exception("Image compression failed")
+        # Read file content once
+        file_content = file.read()
+        file.seek(0)
 
-        future_upload = executor.submit(
-            upload_file_online, compressed_file, filename, "SubmissionImages"
+        # Compress image in memory
+        image = Image.open(io.BytesIO(file_content))
+        if image.mode == "RGBA":
+            image = image.convert("RGB")
+
+        # Resize if needed
+        if image.size[0] > MAX_IMAGE_SIZE[0] or image.size[1] > MAX_IMAGE_SIZE[1]:
+            image.thumbnail(MAX_IMAGE_SIZE, Image.LANCZOS)
+
+        # Save compressed image to buffer
+        buffer = io.BytesIO()
+        image.save(buffer, format="JPEG", optimize=True, quality=IMAGE_QUALITY)
+        buffer.seek(0)
+
+        # Upload directly to Cloud Storage - Removed predefinedAcl
+        blob = bucket.blob(f"SubmissionImages/{filename}")
+        blob.upload_from_file(buffer, content_type="image/jpeg")
+
+        file_url = (
+            f"https://storage.googleapis.com/{BUCKET_NAME}/SubmissionImages/{filename}"
         )
-        file_url = future_upload.result(timeout=10)
 
-        # Sauvegarde dans Firestore
+        # Save to Firestore
         new_submission = {
             "user_id": current_user.id,
             "subject": subject,
@@ -643,9 +658,6 @@ def upload_file():
         flash("Fichier envoyé avec succès!", "success")
         return redirect(url_for("index"))
 
-    except TimeoutError:
-        flash("Timeout error")
-        return make_response("Timeout error", 500)
     except Exception as e:
         flash(f"An error occurred: {str(e)}")
         return make_response(str(e), 500)
@@ -657,7 +669,9 @@ def get_submissions():
     subject = request.args.get("subject", "")
     chapter = request.args.get("chapter", "")
 
-    query = db.collection("submissions")
+    query = db.collection("submissions").order_by(
+        "timestamp", direction=firestore.Query.DESCENDING
+    )
     if subject:
         query = query.where("subject", "==", subject)
     if chapter:
@@ -1011,7 +1025,9 @@ def update_profile():
             buffer.seek(0)
 
             # Upload to Google Cloud Storage
-            file_url = upload_file_online(buffer, filename, "ProfilePictures")
+            blob = bucket.blob(f"ProfilePictures/{filename}")
+            blob.upload_from_file(buffer, content_type="image/jpeg")
+            file_url = f"https://storage.googleapis.com/{BUCKET_NAME}/ProfilePictures/{filename}"
 
             # Supprimer l'ancienne image de profil
             if (
@@ -1073,13 +1089,13 @@ def upload_image():
     image.save(output, format="PNG", quality=75)  # Adjust quality to 75
     output.seek(0)
 
-    # Upload the compressed image
+    # Upload the compressed image - Removed predefinedAcl
     random_string = uuid.uuid4().hex[:16]
     blob = bucket.blob(f"CommentImages/comment_image-{random_string}.png")
     blob.upload_from_file(output, content_type="image/png")
 
-    # Get the public URL without using ACLs
-    public_url = f"https://storage.googleapis.com/{BUCKET_NAME}/{blob.name}"
+    # Get the public URL
+    public_url = f"https://storage.googleapis.com/{BUCKET_NAME}/CommentImages/comment_image-{random_string}.png"
 
     return jsonify({"url": public_url}), 200
 
