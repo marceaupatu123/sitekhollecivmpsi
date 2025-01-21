@@ -278,8 +278,11 @@ def compress_image(file):
     if image.mode == "RGBA":
         image = image.convert("RGB")
 
+    max_size = (1024, 1024)
+    image.thumbnail(max_size, Image.LANCZOS)
+
     output = BytesIO()
-    image.save(output, format="JPEG", quality=85)
+    image.save(output, format="WEBP", quality=55)
     output.seek(0)
     return output
 
@@ -846,7 +849,7 @@ def update_profile():
             image = Image.open(file)
             image = image.convert("RGB")
             buffer = io.BytesIO()
-            image.save(buffer, format="JPEG", quality=85)
+            image.save(buffer, format="JPEG", quality=75)
             buffer.seek(0)
 
             # Upload to Google Cloud Storage
