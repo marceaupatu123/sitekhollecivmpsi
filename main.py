@@ -558,13 +558,13 @@ def upload_file():
             db.collection("submissions").add(new_submission)
         except Exception as e:
             flash(f"Database save failed: {str(e)}")
-            return redirect(request.url)
+            return redirect(url_for("index"))
 
         flash("Fichier envoyé avec succès!", "success")
         return redirect(url_for("index"))
 
     flash("File type not allowed")
-    return redirect(request.url)
+    return redirect(url_for("index"))
 
 
 @app.route("/get_submissions")

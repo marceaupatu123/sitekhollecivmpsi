@@ -269,6 +269,13 @@
 
             // Initial fetch of submissions
             fetchSubmissions();
+
+            const submitButton = document.querySelector('button[type="submit"]');
+            const form = document.querySelector('form[action="/upload"]');
+
+            form.addEventListener('submit', function() {
+                submitButton.disabled = true; // Disable the button
+            });
         });
     </script>
 </body>
